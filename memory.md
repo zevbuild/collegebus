@@ -15,28 +15,35 @@ This is the brain and authoritative specification of the project.
 
 1. **Read Permissions (Public / Guest)**:
    - Visitors without logging in have full read-only access.
-   - They can view real-time countdowns, browse timetables, use instant search, explore route visualizers, and plan multi-hop journeys.
+   - They can view real-time countdowns, browse timetables, use instant search, explore route visualizers, plan multi-hop journeys, and read the community chat feed.
 
 2. **Write Permissions (Logged-in Students Only)**:
    - Only authenticated students (`request.auth != null`) are permitted to write data:
+     - 💬 Send live messages in the **Community Transit Chat** (`comments` collection with `busId: 'community_chat'`)
      - ➕ Add new bus timings (`bus_timings`)
      - 📢 Broadcast route alerts (`alerts`)
-     - ✔ Verify bus timings (community verification badges)
+     - ✔ Verify bus timings (records student's unique public `@username`)
      - 🟢🟡🔴 Report seat crowd capacity (`crowd_reports`)
      - 💬 Post live updates/comments on bus cards (`comments`)
      - ⭐ Save cloud favorites (`favorites`)
 
-3. **Admin Permissions**:
+3. **Unique Public Usernames (`@handle`)**:
+   - Each registered student chooses a unique public username (3-20 characters: letters, numbers, and underscores).
+   - This username serves as their public identity on chat messages, bus verifications, alerts, comments, and leaderboard rankings.
+   - Profile tab includes an `✏️ Edit @handle` option to update usernames with Firestore uniqueness checks.
+
+4. **Admin Permissions**:
    - **Admin Email**: `zevbuildstudio@gmail.com`
    - Admin has exclusive rights to delete bus timings, alerts, and comments.
 
-4. **1-Week (7-Day) Community Message Expiration**:
-   - Community alerts (`alerts`) and bus card comments (`comments`) strictly auto-expire after **7 days** (`ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000`).
+5. **1-Week (7-Day) Community Message Expiration**:
+   - Community chat messages, route alerts (`alerts`), and bus card comments (`comments`) strictly auto-expire after **7 days** (`ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000`).
    - The UI automatically filters out messages older than 7 days in real-time.
-   - The background auto-cleaner purges documents older than 7 days from Firestore when active.
+   - The background auto-cleaner purges documents older than 7 days from Firestore when admin is active.
 
-5. **Seed Data Preservation Rule**:
-   - Never remove or alter the original 45 seed schedules (`s1` through `s47`), `SEED_ALERTS`, or `ROUTE_VIZ` stops.
+6. **Seed Data Preservation Rule**:
+   - Never remove or alter the original 45 seed schedules (`s1` through `s47`), `SEED_ALERTS`, `SEED_CHAT`, or `ROUTE_VIZ` stops.
+   - Seed data contributor handles are anonymized using generic identifiers (`student_1`, `student_2`, etc.).
 
 ---
 
