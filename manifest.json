@@ -1,7 +1,7 @@
 {
-  "name": "CampusBus – ACMSR Transit Tracker",
-  "short_name": "CampusBus",
-  "description": "Community bus timing tracker for ACMSR College students in Goa",
+  "name": "College Bus Tracker",
+  "short_name": "CollegeBus",
+  "description": "Community bus timing tracker for CMSR College students in Goa",
   "start_url": "./index.html?page=home",
   "display": "standalone",
   "background_color": "#0F172A",
