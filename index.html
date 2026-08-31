@@ -8,7 +8,7 @@
 
 <!-- Primary Meta Tags -->
 <meta name="title" content="CollegeBus – ACMSR Transit & Goa Bus Timing Tracker">
-<meta name="description" content="CollegeBus: Real-time bus timings, crowd capacity reports, route visualizer, and journey planner for ACMSR College (Borda), Kamat, Varca, Margao, and Mobor students in Goa.">
+<meta name="description" content="CollegeBus: Real-time bus timings, student community chat, crowd capacity reports, route visualizer, and journey planner for ACMSR College (Borda), Kamat, Varca, Margao, and Mobor students in Goa.">
 <meta name="keywords" content="CollegeBus, ACMSR bus timing, Goa college bus, Margao bus timing, Kamat bus stand, Varca to ACMSR, Borda KTC bus, Goa student transit, collegebus.pages.dev">
 <meta name="author" content="Zevbuild Studio">
 <meta name="robots" content="index, follow">
@@ -19,7 +19,7 @@
 <meta property="og:url" content="https://collegebus.pages.dev/">
 <meta property="og:site_name" content="CollegeBus">
 <meta property="og:title" content="CollegeBus – ACMSR Transit & Goa Bus Timing Tracker">
-<meta property="og:description" content="Live bus timetables, crowd capacity indicators, route timelines, and multi-hop journey planner for ACMSR College & Goa students.">
+<meta property="og:description" content="Live bus timetables, student community chat, crowd capacity indicators, route timelines, and multi-hop journey planner for ACMSR College & Goa students.">
 <meta property="og:image" content="https://collegebus.pages.dev/icons/icon-512.png">
 <meta property="og:locale" content="en_IN">
 
@@ -28,7 +28,7 @@
 <meta name="twitter:url" content="https://collegebus.pages.dev/">
 <meta name="twitter:domain" content="collegebus.pages.dev">
 <meta name="twitter:title" content="CollegeBus – ACMSR Transit & Goa Bus Timing Tracker">
-<meta name="twitter:description" content="Live bus timetables, crowd capacity indicators, route timelines, and multi-hop journey planner for ACMSR College & Goa students.">
+<meta name="twitter:description" content="Live bus timetables, student community chat, crowd capacity indicators, route timelines, and multi-hop journey planner for ACMSR College & Goa students.">
 <meta name="twitter:image" content="https://collegebus.pages.dev/icons/icon-512.png">
 
 <!-- Apple & Mobile Web App -->
@@ -916,6 +916,117 @@ body.dark-mode .card-notes {
   font-size: 12px;
 }
 
+/* ── COMMUNITY CHAT STYLES ────────────────────────── */
+.chat-container-box {
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-header-bar {
+  padding: 10px 14px;
+  background: var(--surface-hover);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chat-messages-area {
+  padding: 14px;
+  height: 360px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scroll-behavior: smooth;
+}
+
+.chat-bubble-wrap {
+  display: flex;
+  gap: 8px;
+  max-width: 85%;
+}
+
+.chat-bubble-wrap.me {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.chat-avatar-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.chat-bubble-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-bubble-wrap.me .chat-bubble-content {
+  align-items: flex-end;
+}
+
+.chat-bubble-author {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+  padding: 0 2px;
+}
+
+.chat-bubble {
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  color: var(--text-main);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.chat-bubble-wrap.me .chat-bubble {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary-dark);
+}
+
+.chat-quick-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 8px 12px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.chat-quick-chips::-webkit-scrollbar { display: none; }
+
+.chat-input-bar {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface-card);
+  border-top: 1px solid var(--border);
+  align-items: center;
+}
+
 /* ── BUTTONS ──────────────────────────────────────── */
 .btn {
   background: var(--primary);
@@ -1340,7 +1451,7 @@ body.dark-mode #toast {
   <!-- ACTIVE DELAY / ALERT BANNER -->
   <div class="global-alert-banner" id="globalAlertBanner">
     <span id="globalAlertMsg">⚠️ Checking for route alerts...</span>
-    <button class="btn btn-sm btn-secondary" onclick="goPage('community')">View</button>
+    <button class="btn btn-sm btn-secondary" onclick="goPage('community');setCommunitySubTab('alerts')">View</button>
   </div>
 
   <!-- OFFLINE BANNER -->
@@ -1537,44 +1648,95 @@ body.dark-mode #toast {
     </div>
 
     <!-- ========================================================
-         TAB 4: COMMUNITY (Alerts & Leaderboard)
+         TAB 4: COMMUNITY (Live Chat, Alerts, Leaderboard)
     ======================================================== -->
     <div class="page" id="page-community">
-      <div class="section-head">
-        <div class="section-title">📢 Post Route Alert</div>
-      </div>
-
-      <div class="form-box">
-        <div class="form-group">
-          <label class="form-label">Alert Type</label>
-          <select id="postAlertType">
-            <option value="warning">⚠️ Bus Running Late</option>
-            <option value="danger">❌ Bus Cancelled</option>
-            <option value="success">✅ Bus On Time / Arrived</option>
-            <option value="info">ℹ️ Route / Road Info</option>
-          </select>
+      
+      <!-- Sub-Tabs for Community -->
+      <div style="padding:14px 16px 6px">
+        <div class="auth-nav-tabs" style="margin-bottom:8px">
+          <button class="auth-tab-btn active" id="subTabChat" onclick="setCommunitySubTab('chat')">💬 Live Chat</button>
+          <button class="auth-tab-btn" id="subTabAlerts" onclick="setCommunitySubTab('alerts')">📢 Route Alerts</button>
+          <button class="auth-tab-btn" id="subTabRank" onclick="setCommunitySubTab('rank')">🏆 Top Students</button>
         </div>
-        <div class="form-group">
-          <label class="form-label">Message</label>
-          <input type="text" id="postAlertMsg" placeholder="e.g. Bus 9424 delayed by 15 mins due to rain...">
+      </div>
+
+      <!-- SUB-SECTION 1: LIVE CHAT -->
+      <div id="communitySubChat">
+        <div class="chat-container-box">
+          <div class="chat-header-bar">
+            <div style="font-size:12.5px;font-weight:700;color:var(--text-main);display:flex;align-items:center;gap:6px">
+              <span class="dot online"></span> Transit Student Chat
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);font-weight:600">Auto-expires 7d</div>
+          </div>
+
+          <!-- Live Chat Messages Feed -->
+          <div class="chat-messages-area" id="chatMessagesArea">
+            <div class="loader-wrap"><div class="spinner"></div></div>
+          </div>
+
+          <!-- Fast Quick Canned Chips -->
+          <div class="chat-quick-chips">
+            <span class="quick-chip" onclick="insertQuickChatMessage('👋 Hi everyone!')">👋 Hi</span>
+            <span class="quick-chip" onclick="insertQuickChatMessage('🚍 Where is the next bus to Kamat?')">🚍 Next Kamat bus?</span>
+            <span class="quick-chip" onclick="insertQuickChatMessage('📍 Anyone at Borda stop?')">📍 Anyone at Borda?</span>
+            <span class="quick-chip" onclick="insertQuickChatMessage('🟢 1:30 PM bus has seats available!')">🟢 Seats available</span>
+            <span class="quick-chip" onclick="insertQuickChatMessage('🌧️ Traffic moving slow near KTC')">🌧️ Traffic update</span>
+          </div>
+
+          <!-- Chat Input Row -->
+          <div class="chat-input-bar">
+            <input type="text" id="chatInput" placeholder="Type a message as @username..." maxlength="140" style="padding-left:12px;font-size:13px">
+            <button class="btn" id="btnSendChat" onclick="sendChatMessage()" style="padding:9px 15px;flex-shrink:0">
+              🚀 Send
+            </button>
+          </div>
         </div>
-        <button class="btn btn-block" onclick="submitAlert()">📢 Broadcast Alert</button>
       </div>
 
-      <div class="section-head">
-        <div class="section-title">⚡ Live Community Feed</div>
-        <div style="font-size:11px;color:var(--text-muted);font-weight:600">Auto-expires after 7 days</div>
-      </div>
-      <div class="bus-list" id="communityAlertsList">
-        <div class="loader-wrap"><div class="spinner"></div></div>
+      <!-- SUB-SECTION 2: ROUTE ALERTS -->
+      <div id="communitySubAlerts" style="display:none">
+        <div class="section-head">
+          <div class="section-title">📢 Broadcast Route Alert</div>
+        </div>
+
+        <div class="form-box">
+          <div class="form-group">
+            <label class="form-label">Alert Type</label>
+            <select id="postAlertType" style="padding-left:12px">
+              <option value="warning">⚠️ Bus Running Late</option>
+              <option value="danger">❌ Bus Cancelled</option>
+              <option value="success">✅ Bus On Time / Arrived</option>
+              <option value="info">ℹ️ Route / Road Info</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Message</label>
+            <input type="text" id="postAlertMsg" placeholder="e.g. Bus 9424 delayed by 15 mins due to rain..." style="padding-left:12px">
+          </div>
+          <button class="btn btn-block" onclick="submitAlert()">📢 Broadcast Alert</button>
+        </div>
+
+        <div class="section-head">
+          <div class="section-title">⚡ Live Community Route Alerts</div>
+          <div style="font-size:11px;color:var(--text-muted);font-weight:600">Auto-expires 7d</div>
+        </div>
+        <div class="bus-list" id="communityAlertsList">
+          <div class="loader-wrap"><div class="spinner"></div></div>
+        </div>
       </div>
 
-      <div class="section-head" style="margin-top:10px">
-        <div class="section-title">🏆 Top Contributors</div>
+      <!-- SUB-SECTION 3: LEADERBOARD -->
+      <div id="communitySubRank" style="display:none">
+        <div class="section-head">
+          <div class="section-title">🏆 Top Student Contributors</div>
+        </div>
+        <div class="form-box" id="leaderboardBox">
+          <div class="loader-wrap"><div class="spinner"></div></div>
+        </div>
       </div>
-      <div class="form-box" id="leaderboardBox">
-        <div class="loader-wrap"><div class="spinner"></div></div>
-      </div>
+
     </div>
 
     <!-- ========================================================
@@ -1588,11 +1750,11 @@ body.dark-mode #toast {
       <div class="form-box">
         <div class="form-group">
           <label class="form-label">Bus Number / Code</label>
-          <input type="text" id="addBusNo" placeholder="e.g. 9424, KTC-402" maxlength="12">
+          <input type="text" id="addBusNo" placeholder="e.g. 9424, KTC-402" maxlength="12" style="padding-left:12px">
         </div>
         <div class="form-group">
           <label class="form-label">Bus Type</label>
-          <select id="addBusType">
+          <select id="addBusType" style="padding-left:12px">
             <option value="general">🟢 General / Ordinary</option>
             <option value="ktc">🔵 Kadamba (KTC Govt)</option>
             <option value="private">🟡 Private Mini Bus</option>
@@ -1601,19 +1763,19 @@ body.dark-mode #toast {
         </div>
         <div class="form-group">
           <label class="form-label">From Stop</label>
-          <input list="stops-list" id="addFrom" placeholder="Starting point (e.g. ACMSR College)">
+          <input list="stops-list" id="addFrom" placeholder="Starting point (e.g. ACMSR College)" style="padding-left:12px">
         </div>
         <div class="form-group">
           <label class="form-label">To Stop</label>
-          <input list="stops-list" id="addTo" placeholder="Destination (e.g. Kamat Bus Stand)">
+          <input list="stops-list" id="addTo" placeholder="Destination (e.g. Kamat Bus Stand)" style="padding-left:12px">
         </div>
         <div class="form-group">
           <label class="form-label">Departure Time</label>
-          <input type="time" id="addTime">
+          <input type="time" id="addTime" style="padding-left:12px">
         </div>
         <div class="form-group">
           <label class="form-label">Notes (Optional)</label>
-          <input type="text" id="addNotes" placeholder="e.g. Via Colva circle, morning trip only">
+          <input type="text" id="addNotes" placeholder="e.g. Via Colva circle, morning trip only" style="padding-left:12px">
         </div>
         <button class="btn btn-block" onclick="submitNewTiming()">✅ Save Timing</button>
       </div>
@@ -1721,7 +1883,7 @@ body.dark-mode #toast {
 
       <div style="padding:16px;text-align:center;font-size:11px;color:var(--text-light)">
         CollegeBus · ACMSR College Community Transit<br>
-        v5.5 · collegebus.pages.dev
+        v5.6 · collegebus.pages.dev
       </div>
     </div>
 
@@ -1745,7 +1907,7 @@ body.dark-mode #toast {
       <span>Journey</span>
     </div>
     <div class="nav-item" id="nav-community" onclick="goPage('community')">
-      <div class="nav-icon">📢</div>
+      <div class="nav-icon">💬</div>
       <span>Community</span>
     </div>
     <div class="nav-item" id="nav-profile" onclick="goPage('profile')">
@@ -1831,7 +1993,7 @@ body.dark-mode #toast {
       <button class="icon-btn" onclick="closeUsernameModal()">✕</button>
     </div>
     <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px">
-      Your unique username is shown to other students when you add bus timings, verify schedules, or post community updates.
+      Your unique username is shown to other students when you add bus timings, verify schedules, chat, or post community updates.
     </div>
     <div class="form-group">
       <label class="form-label">Choose Username</label>
@@ -1948,6 +2110,11 @@ const SEED_ALERTS = [
   { id:'a2', type:'success', message:'1:30 ACMSR → Kamat bus confirmed on time ✅',      addedBy:'student_2', ts:Date.now()-3600000 },
 ];
 
+const SEED_CHAT = [
+  { id:'c1', message:'👋 Welcome to the student chat room! Ask about timings or road updates here.', name:'@student_1', ts:Date.now()-7200000 },
+  { id:'c2', message:'Anyone catching the 1:30 PM bus from ACMSR College today?', name:'@student_2', ts:Date.now()-3600000 },
+];
+
 const ROUTE_VIZ = {
   'borda-ktc': [
     { name:'ACMSR College (Borda Stop)', time:'Dep.', first:true },
@@ -1983,8 +2150,10 @@ const ADMIN_EMAIL = 'zevbuildstudio@gmail.com';
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000; // 7 Days Auto Expiration
 let currentUser = null;
 let currentAuthMode = 'signin'; // 'signin' or 'register'
+let communitySubTab = 'chat'; // 'chat', 'alerts', 'rank'
 let buses = [...SEED];
 let alerts = [...SEED_ALERTS];
+let chatMessages = [...SEED_CHAT];
 let favorites = JSON.parse(localStorage.getItem('collegebus_favs') || localStorage.getItem('campusbus_favs') || '[]');
 let crowdCache = JSON.parse(localStorage.getItem('collegebus_crowd') || localStorage.getItem('campusbus_crowd') || '{}');
 let homeFilterKey = 'all';
@@ -2075,7 +2244,7 @@ function updateCloudSyncStatus(status, count = 0) {
   }
 }
 
-/* ── 4. AUTO-FETCH, AUTO-SEED & 1-WEEK MESSAGE PURGE ───────────── */
+/* ── 4. AUTO-FETCH, REALTIME CHAT & 1-WEEK AUTO-PURGE ──────────── */
 async function autoFetchAndSyncSeed() {
   if (!window.FB || !window.FB.db) return;
   if (!navigator.onLine) {
@@ -2085,7 +2254,7 @@ async function autoFetchAndSyncSeed() {
 
   updateCloudSyncStatus('syncing');
   try {
-    const { collection, getDocs, setDoc, doc, onSnapshot, query, orderBy } = window.FB;
+    const { collection, getDocs, setDoc, doc, onSnapshot, query, where, orderBy } = window.FB;
     
     // 1. Listen for live buses from server
     const busQ = query(collection(window.FB.db, 'bus_timings'), orderBy('time'));
@@ -2149,7 +2318,20 @@ async function autoFetchAndSyncSeed() {
       updateAdminCounts();
     });
 
-    // 4. Auto-clean expired messages (> 1 week) in background
+    // 4. Listen for Community Live Chat Messages (Auto-filtered <= 1 week)
+    const chatQ = query(collection(window.FB.db, 'comments'), where('busId', '==', 'community_chat'), orderBy('ts', 'asc'));
+    onSnapshot(chatQ, snap => {
+      const now = Date.now();
+      const fbChat = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(c => (now - (c.ts || 0)) <= ONE_WEEK_MS);
+      chatMessages = fbChat.length ? fbChat : SEED_CHAT.filter(c => (now - (c.ts || 0)) <= ONE_WEEK_MS);
+      renderChatFeed(true);
+    }, err => {
+      console.warn('[CollegeBus] Chat realtime listener:', err);
+    });
+
+    // 5. Auto-clean expired messages (> 1 week) in background
     autoCleanExpiredCommunityMessages();
 
     updateCloudSyncStatus('synced', uploadedCount);
@@ -2171,13 +2353,13 @@ async function autoCleanExpiredCommunityMessages() {
     const snapAlerts = await getDocs(query(collection(window.FB.db, 'alerts'), where('ts', '<', cutoff)));
     const alertDeletes = snapAlerts.docs.map(d => deleteDoc(d.ref));
 
-    // Clean expired comments
+    // Clean expired comments and chat messages
     const snapComments = await getDocs(query(collection(window.FB.db, 'comments'), where('ts', '<', cutoff)));
     const commentDeletes = snapComments.docs.map(d => deleteDoc(d.ref));
 
     await Promise.all([...alertDeletes, ...commentDeletes]);
     if (snapAlerts.size > 0 || snapComments.size > 0) {
-      console.log(`[CollegeBus Auto-Clean] Purged ${snapAlerts.size} alerts and ${snapComments.size} comments older than 7 days.`);
+      console.log(`[CollegeBus Auto-Clean] Purged ${snapAlerts.size} alerts and ${snapComments.size} comments/chat older than 7 days.`);
     }
   } catch (e) {
     console.warn('[CollegeBus Auto-Clean]:', e);
@@ -2238,7 +2420,14 @@ function initializeAppLogic() {
     tInp.addEventListener('input', doLiveFilter);
   }
 
-  // Setup Enter key on Auth modal inputs
+  // Setup Enter key on Chat & Auth modal inputs
+  const chatInp = document.getElementById('chatInput');
+  if (chatInp) {
+    chatInp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') sendChatMessage();
+    });
+  }
+
   ['authEmail', 'authPass', 'regUsername'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('keydown', e => {
@@ -2300,6 +2489,36 @@ function goPage(pageId) {
   if (targetNav) targetNav.classList.add('active');
   
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  if (pageId === 'community') {
+    setTimeout(() => { scrollChatToBottom(); }, 150);
+  }
+}
+
+function setCommunitySubTab(tab) {
+  communitySubTab = tab;
+  const tChat = document.getElementById('subTabChat');
+  const tAlerts = document.getElementById('subTabAlerts');
+  const tRank = document.getElementById('subTabRank');
+
+  const sChat = document.getElementById('communitySubChat');
+  const sAlerts = document.getElementById('communitySubAlerts');
+  const sRank = document.getElementById('communitySubRank');
+
+  [tChat, tAlerts, tRank].forEach(t => t && t.classList.remove('active'));
+  [sChat, sAlerts, sRank].forEach(s => s && (s.style.display = 'none'));
+
+  if (tab === 'alerts') {
+    if (tAlerts) tAlerts.classList.add('active');
+    if (sAlerts) sAlerts.style.display = 'block';
+  } else if (tab === 'rank') {
+    if (tRank) tRank.classList.add('active');
+    if (sRank) sRank.style.display = 'block';
+  } else {
+    if (tChat) tChat.classList.add('active');
+    if (sChat) sChat.style.display = 'block';
+    setTimeout(scrollChatToBottom, 50);
+  }
 }
 
 /* ── 8. RENDER HOME & TIMINGS VIEWS ───────────────────────────── */
@@ -2309,6 +2528,7 @@ function renderAllViews() {
   renderBusCardsList('homeBusList', homeFilterKey);
   renderTimingsView();
   renderAlertsFeed();
+  renderChatFeed();
   checkGlobalAlertBanner();
   renderSavedFavs();
   renderLeaderboard();
@@ -2722,7 +2942,7 @@ function renderRouteTimeline(key) {
   }).join('');
 }
 
-/* ── 11. COMMUNITY ALERTS & LEADERBOARD ───────────────────────── */
+/* ── 11. COMMUNITY LIVE CHAT, ALERTS & LEADERBOARD ────────────── */
 function checkGlobalAlertBanner() {
   const banner = document.getElementById('globalAlertBanner');
   const msgEl = document.getElementById('globalAlertMsg');
@@ -2760,6 +2980,90 @@ function renderAlertsFeed() {
         Reported by <strong style="color:var(--primary)">${escapeHtml(formatHandle(a.addedBy))}</strong> · ${ago(a.ts)}
       </div>
     </div>`).join('');
+}
+
+function renderChatFeed(autoScroll = false) {
+  const area = document.getElementById('chatMessagesArea');
+  if (!area) return;
+
+  if (!chatMessages.length) {
+    area.innerHTML = `
+      <div class="empty-state" style="padding:20px 10px">
+        <div class="empty-icon" style="font-size:28px">💬</div>
+        <div class="empty-text">No active chat messages yet this week.<br>Say hello to your fellow college commuters!</div>
+      </div>`;
+    return;
+  }
+
+  const myHandle = currentUser ? ('@' + getPublicUsername()) : '';
+  const myEmail = currentUser ? currentUser.email : '';
+  const myUid = currentUser ? currentUser.uid : '';
+
+  area.innerHTML = chatMessages.map(m => {
+    const sender = formatHandle(m.name);
+    const isMe = (currentUser && (sender === myHandle || m.uid === myUid || m.name === myEmail));
+    const initial = sender.replace(/^@/, '')[0].toUpperCase();
+
+    return `
+      <div class="chat-bubble-wrap ${isMe ? 'me' : ''}">
+        ${!isMe ? `<div class="chat-avatar-circle">${escapeHtml(initial)}</div>` : ''}
+        <div class="chat-bubble-content">
+          <div class="chat-bubble-author">${escapeHtml(sender)} · ${ago(m.ts)}</div>
+          <div class="chat-bubble">${escapeHtml(m.message)}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  if (autoScroll) scrollChatToBottom();
+}
+
+function scrollChatToBottom() {
+  const area = document.getElementById('chatMessagesArea');
+  if (area) area.scrollTop = area.scrollHeight;
+}
+
+function insertQuickChatMessage(text) {
+  const inp = document.getElementById('chatInput');
+  if (inp) {
+    inp.value = text;
+    inp.focus();
+  }
+}
+
+async function sendChatMessage() {
+  if (!currentUser) {
+    toast('🔒 Please sign in to join the student chat', 'err');
+    openAuthModal('signin');
+    return;
+  }
+
+  const inp = document.getElementById('chatInput');
+  const text = (inp ? inp.value : '').trim();
+  if (!text) return;
+
+  const name = '@' + getPublicUsername();
+  const msgObj = {
+    busId: 'community_chat',
+    message: text,
+    name,
+    uid: currentUser.uid,
+    ts: Date.now()
+  };
+
+  inp.value = '';
+
+  if (window.FB && window.FB.db && navigator.onLine) {
+    try {
+      await window.FB.addDoc(window.FB.collection(window.FB.db, 'comments'), msgObj);
+      scrollChatToBottom();
+      return;
+    } catch(e) {
+      console.warn('[CollegeBus] Error sending chat:', e);
+    }
+  }
+
+  chatMessages.push(msgObj);
+  renderChatFeed(true);
 }
 
 function renderLeaderboard() {
@@ -3023,6 +3327,7 @@ function setupAuthListener() {
     }
 
     updateUserAuthUI();
+    renderChatFeed();
     if (user) {
       autoFetchAndSyncSeed();
     }
@@ -3177,6 +3482,7 @@ async function setPublicUsername(chosenUsername) {
 
   localStorage.setItem('collegebus_username_' + currentUser.uid, clean);
   updateUserAuthUI();
+  renderChatFeed();
   toast('✅ Public username set to @' + clean, 'ok');
   return true;
 }
@@ -3380,6 +3686,7 @@ async function doLogout() {
   if (window.FB && window.FB.auth) await window.FB.signOut(window.FB.auth);
   currentUser = null;
   updateUserAuthUI();
+  renderChatFeed();
   toast('Signed out', '');
 }
 
@@ -3432,6 +3739,7 @@ async function requestNotificationPermission() {
 
 /* ── 16. EXPOSE GLOBAL HANDLERS TO WINDOW ─────────────────────── */
 window.goPage = goPage;
+window.setCommunitySubTab = setCommunitySubTab;
 window.setAuthMode = setAuthMode;
 window.doEmailLogin = doEmailLogin;
 window.doRegister = doRegister;
@@ -3441,6 +3749,8 @@ window.openUsernameModal = openUsernameModal;
 window.closeUsernameModal = closeUsernameModal;
 window.savePublicUsernameModal = savePublicUsernameModal;
 window.setPublicUsername = setPublicUsername;
+window.sendChatMessage = sendChatMessage;
+window.insertQuickChatMessage = insertQuickChatMessage;
 window.doGoogleLogin = doGoogleLogin;
 window.doLogout = doLogout;
 window.openAuthModal = openAuthModal;
