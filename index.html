@@ -391,7 +391,7 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ── HERO BANNER ──────────────────────────────────────────── */
+/* ── HERO BANNER ──────────────────────────────────── */
 .hero-box {
   padding: 16px 16px 8px;
 }
@@ -424,7 +424,7 @@ body {
   border: 1px solid var(--border);
 }
 
-/* ── NEXT BUS SPOTLIGHT ───────────────────────────────────── */
+/* ── NEXT BUS SPOTLIGHT ───────────────────────────── */
 .next-bus-card {
   background: linear-gradient(135deg, #059669 0%, #10B981 100%);
   color: white;
@@ -1687,7 +1687,7 @@ body.dark-mode #toast {
 
           <!-- Chat Input Row -->
           <div class="chat-input-bar">
-            <input type="text" id="chatInput" placeholder="Type a message as @username..." maxlength="140" style="padding-left:12px;font-size:13px">
+            <input type="text" id="chatInput" placeholder="Type a message as @student..." maxlength="140" style="padding-left:12px;font-size:13px" onkeydown="if(event.key==='Enter') sendChatMessage()">
             <button class="btn" id="btnSendChat" onclick="sendChatMessage()" style="padding:9px 15px;flex-shrink:0">
               🚀 Send
             </button>
@@ -2151,7 +2151,10 @@ const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000; // 7 Days Auto Expiration
 let currentUser = null;
 let currentAuthMode = 'signin'; // 'signin' or 'register'
 let communitySubTab = 'chat'; // 'chat', 'alerts', 'rank'
-let buses = [...SEED];
+
+let cachedBusesRaw = null;
+try { cachedBusesRaw = JSON.parse(localStorage.getItem('collegebus_buses_cache') || 'null'); } catch(e) {}
+let buses = Array.isArray(cachedBusesRaw) && cachedBusesRaw.length >= SEED.length ? cachedBusesRaw : [...SEED];
 let alerts = [...SEED_ALERTS];
 let chatMessages = [...SEED_CHAT];
 let favorites = JSON.parse(localStorage.getItem('collegebus_favs') || localStorage.getItem('campusbus_favs') || '[]');
@@ -2254,16 +2257,17 @@ async function autoFetchAndSyncSeed() {
 
   updateCloudSyncStatus('syncing');
   try {
-    const { collection, getDocs, setDoc, doc, onSnapshot, query, where, orderBy } = window.FB;
+    const { collection, getDocs, setDoc, doc, onSnapshot, query, where } = window.FB;
     
     // 1. Listen for live buses from server
-    const busQ = query(collection(window.FB.db, 'bus_timings'), orderBy('time'));
+    const busQ = query(collection(window.FB.db, 'bus_timings'));
     onSnapshot(busQ, snap => {
       const fbData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       const fbKeys = new Set(fbData.map(b => (b.from||'').trim() + '→' + (b.to||'').trim() + '@' + (b.time||'').trim()));
       const missingSeed = SEED.filter(b => !fbKeys.has(b.from.trim() + '→' + b.to.trim() + '@' + b.time.trim()));
       
       buses = [...fbData, ...missingSeed].sort((a,b) => (a.time||'').localeCompare(b.time||''));
+      try { localStorage.setItem('collegebus_buses_cache', JSON.stringify(buses)); } catch(e) {}
       renderAllViews();
       updateAdminCounts();
     }, err => {
@@ -2306,29 +2310,34 @@ async function autoFetchAndSyncSeed() {
     }
 
     // 3. Listen for Alerts (Auto-filtered strictly to <= 1 week)
-    const alertQ = query(collection(window.FB.db, 'alerts'), orderBy('ts', 'desc'));
+    const alertQ = query(collection(window.FB.db, 'alerts'));
     onSnapshot(alertQ, snap => {
       const now = Date.now();
       const fbAlerts = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
-        .filter(a => (now - (a.ts || 0)) <= ONE_WEEK_MS);
+        .filter(a => (now - (a.ts || 0)) <= ONE_WEEK_MS)
+        .sort((a,b) => (b.ts || 0) - (a.ts || 0));
       alerts = fbAlerts.length ? fbAlerts : SEED_ALERTS.filter(a => (now - (a.ts || 0)) <= ONE_WEEK_MS);
       renderAlertsFeed();
       checkGlobalAlertBanner();
       updateAdminCounts();
+    }, err => {
+      console.warn('[CollegeBus] Alert listener error:', err);
     });
 
-    // 4. Listen for Community Live Chat Messages (Auto-filtered <= 1 week)
-    const chatQ = query(collection(window.FB.db, 'comments'), where('busId', '==', 'community_chat'), orderBy('ts', 'asc'));
+    // 4. Listen for Community Live Chat Messages (Auto-filtered <= 1 week, NO index required)
+    const chatQ = query(collection(window.FB.db, 'comments'), where('busId', '==', 'community_chat'));
     onSnapshot(chatQ, snap => {
       const now = Date.now();
       const fbChat = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
-        .filter(c => (now - (c.ts || 0)) <= ONE_WEEK_MS);
+        .filter(c => (now - (c.ts || 0)) <= ONE_WEEK_MS)
+        .sort((a,b) => (a.ts || 0) - (b.ts || 0));
       chatMessages = fbChat.length ? fbChat : SEED_CHAT.filter(c => (now - (c.ts || 0)) <= ONE_WEEK_MS);
       renderChatFeed(true);
     }, err => {
-      console.warn('[CollegeBus] Chat realtime listener:', err);
+      console.warn('[CollegeBus] Chat listener fallback:', err);
+      renderChatFeed(false);
     });
 
     // 5. Auto-clean expired messages (> 1 week) in background
@@ -2420,14 +2429,7 @@ function initializeAppLogic() {
     tInp.addEventListener('input', doLiveFilter);
   }
 
-  // Setup Enter key on Chat & Auth modal inputs
-  const chatInp = document.getElementById('chatInput');
-  if (chatInp) {
-    chatInp.addEventListener('keydown', e => {
-      if (e.key === 'Enter') sendChatMessage();
-    });
-  }
-
+  // Setup Enter key on Auth modal inputs
   ['authEmail', 'authPass', 'regUsername'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('keydown', e => {
@@ -2491,7 +2493,7 @@ function goPage(pageId) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   if (pageId === 'community') {
-    setTimeout(() => { scrollChatToBottom(); }, 150);
+    setCommunitySubTab(communitySubTab || 'chat');
   }
 }
 
@@ -2517,7 +2519,7 @@ function setCommunitySubTab(tab) {
   } else {
     if (tChat) tChat.classList.add('active');
     if (sChat) sChat.style.display = 'block';
-    setTimeout(scrollChatToBottom, 50);
+    renderChatFeed(true);
   }
 }
 
@@ -2714,13 +2716,14 @@ async function loadBusComments(busId) {
     return;
   }
   try {
-    const { collection, query, where, getDocs, orderBy } = window.FB;
-    const q = query(collection(window.FB.db, 'comments'), where('busId', '==', busId), orderBy('ts', 'desc'));
+    const { collection, query, where, getDocs } = window.FB;
+    const q = query(collection(window.FB.db, 'comments'), where('busId', '==', busId));
     const snap = await getDocs(q);
     const now = Date.now();
     const validComments = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
-      .filter(c => (now - (c.ts || 0)) <= ONE_WEEK_MS);
+      .filter(c => (now - (c.ts || 0)) <= ONE_WEEK_MS)
+      .sort((a,b) => (b.ts || 0) - (a.ts || 0));
 
     if (!validComments.length) {
       listEl.innerHTML = '<div style="padding:4px 0">No active updates yet (messages auto-expire after 7 days).</div>';
@@ -3001,7 +3004,7 @@ function renderChatFeed(autoScroll = false) {
 
   area.innerHTML = chatMessages.map(m => {
     const sender = formatHandle(m.name);
-    const isMe = (currentUser && (sender === myHandle || m.uid === myUid || m.name === myEmail));
+    const isMe = Boolean(currentUser && (sender === myHandle || m.uid === myUid || m.name === myEmail));
     const initial = sender.replace(/^@/, '')[0].toUpperCase();
 
     return `
@@ -3019,7 +3022,9 @@ function renderChatFeed(autoScroll = false) {
 
 function scrollChatToBottom() {
   const area = document.getElementById('chatMessagesArea');
-  if (area) area.scrollTop = area.scrollHeight;
+  if (area) {
+    setTimeout(() => { area.scrollTop = area.scrollHeight; }, 30);
+  }
 }
 
 function insertQuickChatMessage(text) {
@@ -3052,18 +3057,18 @@ async function sendChatMessage() {
 
   inp.value = '';
 
+  // Optimistic UI dispatch
+  chatMessages.push(msgObj);
+  renderChatFeed(true);
+  toast('🚀 Message posted as ' + name + '!', 'ok');
+
   if (window.FB && window.FB.db && navigator.onLine) {
     try {
       await window.FB.addDoc(window.FB.collection(window.FB.db, 'comments'), msgObj);
-      scrollChatToBottom();
-      return;
     } catch(e) {
-      console.warn('[CollegeBus] Error sending chat:', e);
+      console.warn('[CollegeBus] Error sending chat to Firestore:', e);
     }
   }
-
-  chatMessages.push(msgObj);
-  renderChatFeed(true);
 }
 
 function renderLeaderboard() {
@@ -3342,6 +3347,7 @@ function updateUserAuthUI() {
   const loggedOut = document.getElementById('loggedOutButtons');
   const editUsernameBtn = document.getElementById('editUsernameBtn');
   const adminBox = document.getElementById('adminPanelBox');
+  const chatInp = document.getElementById('chatInput');
 
   if (currentUser) {
     const handle = getPublicUsername(currentUser);
@@ -3351,6 +3357,7 @@ function updateUserAuthUI() {
     if (loggedIn) loggedIn.style.display = 'block';
     if (loggedOut) loggedOut.style.display = 'none';
     if (editUsernameBtn) editUsernameBtn.style.display = 'inline-block';
+    if (chatInp) chatInp.placeholder = 'Message as @' + handle + '...';
 
     const myH = '@' + handle;
     const added = buses.filter(b => b.addedBy === currentUser.email || b.addedBy === myH || b.uid === currentUser.uid).length;
@@ -3371,6 +3378,7 @@ function updateUserAuthUI() {
     if (loggedIn) loggedIn.style.display = 'none';
     if (loggedOut) loggedOut.style.display = 'block';
     if (editUsernameBtn) editUsernameBtn.style.display = 'none';
+    if (chatInp) chatInp.placeholder = 'Sign in to send chat messages...';
     if (adminBox) adminBox.style.display = 'none';
   }
 }
