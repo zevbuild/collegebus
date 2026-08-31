@@ -2,11 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#16A34A">
-<meta name="description" content="CampusBus – ACMSR College community bus tracker for Goa students">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#10B981">
+<meta name="description" content="CampusBus – Simple, fast, community-powered bus tracker for ACMSR College and Goa students">
 <link rel="manifest" href="manifest.json">
-<title>CampusBus v5.3 Improved – ACMSR Transit Tracker</title>
+<title>CampusBus – ACMSR Transit Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <!-- ============================================================
@@ -17,7 +19,7 @@
   import { getFirestore, collection, addDoc, query, where,
            orderBy, onSnapshot, updateDoc, getDoc, getDocs,
            doc, arrayUnion, deleteDoc, setDoc,
-           increment, serverTimestamp }
+           increment, serverTimestamp, enableIndexedDbPersistence }
                                      from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { getAuth, onAuthStateChanged, signOut,
            signInWithEmailAndPassword, createUserWithEmailAndPassword,
@@ -39,6 +41,10 @@
   const db   = getFirestore(app);
   const auth = getAuth(app);
 
+  try {
+    enableIndexedDbPersistence(db).catch(() => {});
+  } catch(e) {}
+
   window.FB = {
     db, auth,
     collection, addDoc, query, where, orderBy, onSnapshot,
@@ -48,838 +54,1683 @@
     signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup,
     ready: true
   };
+
+  window.dispatchEvent(new CustomEvent('firebase-ready'));
 </script>
 
 <!-- ============================================================
-     CSS — all tokens in :root (optimized for mobile & PWA)
+     CSS — Clean, Simple, Modern Design System
 ============================================================ -->
 <style>
-/* ── TOKENS ─────────────────────────────────────────────────── */
+/* ── THEME TOKENS ─────────────────────────────────────────── */
 :root {
-  --green:       #16A34A;
-  --green-dark:  #15803D;
-  --green-light: #DCFCE7;
-  --navy:        #0F172A;
-  --navy2:       #1E293B;
-  --bg:          #F8FAFC;
-  --surface:     #FFFFFF;
-  --surface2:    #F1F5F9;
-  --border:      #E2E8F0;
-  --text:        #0F172A;
-  --text2:       #64748B;
-  --text3:       #94A3B8;
-  --red:         #DC2626;
-  --amber:       #D97706;
-  --blue:        #2563EB;
-  --purple:      #7C3AED;
-  --radius:      14px;
-  --radius-sm:   9px;
-  --shadow:      0 1px 8px rgba(0,0,0,0.07);
-  --shadow-md:   0 4px 20px rgba(0,0,0,0.10);
+  --primary:        #10B981;
+  --primary-dark:   #059669;
+  --primary-light:  #D1FAE5;
+  --primary-glow:   rgba(16, 185, 129, 0.18);
+  
+  --bg:             #F8FAFC;
+  --surface:        #FFFFFF;
+  --surface-hover:  #F1F5F9;
+  --surface-card:   #FFFFFF;
+  --border:         #E2E8F0;
+  --border-focus:   #10B981;
+  
+  --text-main:      #0F172A;
+  --text-muted:     #64748B;
+  --text-light:     #94A3B8;
+  
+  --header-bg:      rgba(255, 255, 255, 0.88);
+  --nav-bg:         rgba(255, 255, 255, 0.95);
+  
+  --ktc-bg:         #EFF6FF;
+  --ktc-text:       #1D4ED8;
+  --pvt-bg:         #FEF3C7;
+  --pvt-text:       #B45309;
+  --exp-bg:         #F3E8FF;
+  --exp-text:       #7E22CE;
+  --gen-bg:         #ECFDF5;
+  --gen-text:       #047857;
+
+  --red:            #EF4444;
+  --red-light:      #FEE2E2;
+  --amber:          #F59E0B;
+  --amber-light:    #FEF3C7;
+  --blue:           #3B82F6;
+  
+  --radius-sm:      8px;
+  --radius-md:      12px;
+  --radius-lg:      16px;
+  --radius-full:    9999px;
+  
+  --shadow-sm:      0 1px 3px rgba(0,0,0,0.05);
+  --shadow-md:      0 4px 14px rgba(0,0,0,0.06);
+  --shadow-lg:      0 10px 25px rgba(0,0,0,0.08);
 }
 
-/* Dark mode overrides */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg:          #0F172A;
-    --surface:     #1E293B;
-    --surface2:    #2D3A4F;
-    --border:      #334155;
-    --text:        #F1F5F9;
-    --text2:       #94A3B8;
-    --text3:       #64748B;
-    --navy:        #0F172A;
-    --navy2:       #1E293B;
-    --green-light: #064E3B;
-  }
-  .topbar, .page-head, .hero, .suggest-card, .profile-top { background: var(--navy2) !important; }
-  .bus-card, .search-card, .form-card, .route-viz, .result-box, .modal-box { background: var(--surface); border-color: var(--border); }
-  input, select, textarea { background: var(--surface2); color: var(--text); border-color: var(--border); }
-}
 body.dark-mode {
-  --bg:          #0F172A;
-  --surface:     #1E293B;
-  --surface2:    #2D3A4F;
-  --border:      #334155;
-  --text:        #F1F5F9;
-  --text2:       #94A3B8;
-  --text3:       #64748B;
-  --navy:        #0F172A;
-  --navy2:       #1E293B;
-  --green-light: #064E3B;
+  --primary:        #10B981;
+  --primary-dark:   #34D399;
+  --primary-light:  #064E3B;
+  --primary-glow:   rgba(16, 185, 129, 0.25);
+  
+  --bg:             #0B0F19;
+  --surface:        #131B2E;
+  --surface-hover:  #1E293B;
+  --surface-card:   #151F32;
+  --border:         #1E293B;
+  --border-focus:   #10B981;
+  
+  --text-main:      #F8FAFC;
+  --text-muted:     #94A3B8;
+  --text-light:     #64748B;
+  
+  --header-bg:      rgba(11, 15, 25, 0.88);
+  --nav-bg:         rgba(19, 27, 46, 0.95);
+  
+  --ktc-bg:         #1E3A8A;
+  --ktc-text:       #93C5FD;
+  --pvt-bg:         #78350F;
+  --pvt-text:       #FDE68A;
+  --exp-bg:         #581C87;
+  --exp-text:       #E9D5FF;
+  --gen-bg:         #064E3B;
+  --gen-text:       #A7F3D0;
+  
+  --red-light:      #450A0A;
+  --amber-light:    #451A03;
 }
-body.dark-mode .topbar, body.dark-mode .page-head, body.dark-mode .hero, body.dark-mode .suggest-card, body.dark-mode .profile-top { background: var(--navy2) !important; }
-body.dark-mode .bus-card, body.dark-mode .search-card, body.dark-mode .form-card, body.dark-mode .route-viz, body.dark-mode .result-box, body.dark-mode .modal-box { background: var(--surface); border-color: var(--border); }
-body.dark-mode input, body.dark-mode select, body.dark-mode textarea { background: var(--surface2); color: var(--text); border-color: var(--border); }
 
-*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 body {
-  font-family:'Plus Jakarta Sans',sans-serif;
-  background:var(--bg); color:var(--text);
-  min-height:100vh; overflow-x:hidden;
-  -webkit-tap-highlight-color:transparent;
-  transition: background 0.2s, color 0.2s;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg);
+  color: var(--text-main);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  line-height: 1.45;
 }
 
-/* ── TOPBAR ──────────────────────────────────────────────────── */
+.app-container {
+  max-width: 680px;
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── TOPBAR ───────────────────────────────────────────────── */
 .topbar {
-  position:sticky; top:0; z-index:200;
-  background:var(--navy); height:56px;
-  display:flex; align-items:center; justify-content:space-between;
-  padding:0 18px; box-shadow:0 2px 12px rgba(0,0,0,.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--header-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
 }
-.brand { display:flex; align-items:center; gap:9px; font-weight:800; font-size:18px; color:white; letter-spacing:-.3px; }
-.brand-icon { width:32px; height:32px; background:var(--green); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:16px; }
-.brand em { color:var(--green); font-style:normal; }
-.topbar-right { display:flex; align-items:center; gap:8px; }
-.login-chip { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.15); border-radius:20px; padding:5px 13px; font-size:13px; font-weight:600; color:white; cursor:pointer; transition:background .2s; }
-.login-chip:hover { background:rgba(255,255,255,.2); }
-.status-dot { width:7px; height:7px; border-radius:50%; background:#EF4444; }
-.status-dot.on { background:#4ADE80; }
-/* Offline banner */
-#offlineBanner { display:none; background:var(--amber); color:white; text-align:center; padding:7px; font-size:13px; font-weight:700; }
 
-/* ── BOTTOM NAV ──────────────────────────────────────────────── */
-.bottom-nav { position:fixed; bottom:0; left:0; right:0; z-index:200; background:var(--surface); border-top:1px solid var(--border); display:flex; box-shadow:0 -2px 16px rgba(0,0,0,.07); padding-bottom:env(safe-area-inset-bottom); }
-.nav-btn { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:9px 0; cursor:pointer; font-size:10px; font-weight:700; letter-spacing:.3px; color:var(--text3); text-transform:uppercase; gap:3px; transition:color .15s; }
-.nav-btn .ico { font-size:20px; }
-.nav-btn.active { color:var(--green); }
+.brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  cursor: pointer;
+}
 
-/* ── PAGES ───────────────────────────────────────────────────── */
-.page { display:none; padding-bottom:90px; animation:pageFade 0.2s ease; }
-.page.active { display:block; }
-@keyframes pageFade { from{opacity:0.5;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+.brand-logo {
+  width: 34px;
+  height: 34px;
+  background: var(--primary);
+  color: white;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 2px 8px var(--primary-glow);
+}
 
-/* ── HERO ────────────────────────────────────────────────────── */
-.hero { background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%); padding:24px 18px 28px; position:relative; overflow:hidden; }
-.hero::after { content:'🚌'; position:absolute; right:-8px; top:-10px; font-size:110px; opacity:.05; transform:rotate(-8deg); pointer-events:none; }
-.hero-tag  { font-size:11px; letter-spacing:3px; color:rgba(255,255,255,.45); text-transform:uppercase; margin-bottom:5px; }
-.hero-h1   { font-size:24px; font-weight:800; color:white; line-height:1.2; margin-bottom:3px; }
-.hero-sub  { font-size:13px; color:rgba(255,255,255,.5); margin-bottom:16px; }
-.date-chip { display:inline-flex; align-items:center; gap:5px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); border-radius:20px; padding:4px 12px; font-size:12px; color:rgba(255,255,255,.8); margin-bottom:16px; }
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
 
-/* ── SEARCH CARD ─────────────────────────────────────────────── */
-.search-card { background:var(--surface); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow-md); }
-.stop-row { display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
-input,select,textarea { width:100%; padding:11px 13px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-family:inherit; font-size:14px; color:var(--text); background:var(--bg); outline:none; transition:border-color .2s; appearance:none; }
-input:focus,select:focus,textarea:focus { border-color:var(--green); }
+.brand-title {
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.3px;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 
-/* ── BUTTONS ─────────────────────────────────────────────────── */
-.btn { width:100%; padding:12px; background:var(--green); color:white; border:none; border-radius:var(--radius-sm); font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; transition:background .15s,transform .15s; }
-.btn:hover  { background:var(--green-dark); transform:translateY(-1px); }
-.btn:active { transform:translateY(0); }
-.btn-navy   { background:var(--navy); } .btn-navy:hover { background:var(--navy2); }
-.btn-red    { background:var(--red); }  .btn-red:hover  { background:#B91C1C; }
-.btn-amber  { background:var(--amber); }
-.btn-purple { background:var(--purple); }
-.btn-ghost  { background:transparent; border:1.5px solid var(--border); color:var(--text2); }
-.btn-ghost:hover { background:var(--border); transform:none; }
-.btn-google { background:white; border:1.5px solid var(--border); color:var(--text); font-weight:600; }
-.btn-google:hover { background:var(--bg); transform:none; }
-.btn-sm     { padding:7px 14px; font-size:13px; width:auto; }
-.btn-outline { background:transparent; border:1.5px solid var(--green); color:var(--green); }
-.btn-outline:hover { background:var(--green); color:white; }
-.btn:disabled { opacity:0.5; pointer-events:none; }
+.brand-title span {
+  color: var(--primary);
+}
 
-/* ── SECTIONS ────────────────────────────────────────────────── */
-.section { padding:18px 18px 0; }
-.section-title { font-size:16px; font-weight:800; color:var(--text); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
-.page-head { background:var(--navy); padding:22px 18px 18px; color:white; }
-.page-head-sub { font-size:10px; letter-spacing:3px; opacity:.4; text-transform:uppercase; margin-bottom:3px; }
-.page-head-h2  { font-size:21px; font-weight:800; }
-.page-head-p   { font-size:13px; opacity:.5; margin-top:3px; }
+.brand-sub {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
 
-/* ── PILLS ───────────────────────────────────────────────────── */
-.pills { display:flex; gap:8px; overflow-x:auto; padding:4px 18px 14px; scrollbar-width:none; }
-.pills::-webkit-scrollbar { display:none; }
-.pill { flex-shrink:0; white-space:nowrap; background:var(--surface); border:1.5px solid var(--border); color:var(--text2); padding:6px 14px; border-radius:20px; font-size:13px; font-weight:600; cursor:pointer; transition:all .15s; }
-.pill.active { background:var(--navy); border-color:var(--navy); color:white; }
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-/* ── NEXT BUS CARD ───────────────────────────────────────────── */
-.next-card { background:linear-gradient(135deg,var(--green) 0%,#22C55E 100%); border-radius:var(--radius); padding:18px; color:white; position:relative; overflow:hidden; margin-bottom:14px; }
-.next-card::after { content:'🚍'; position:absolute; right:14px; bottom:-4px; font-size:48px; opacity:.18; pointer-events:none; }
-.next-label { font-size:10px; letter-spacing:2.5px; opacity:.75; text-transform:uppercase; margin-bottom:4px; }
-.next-time  { font-size:36px; font-weight:800; line-height:1; margin-bottom:2px; }
-.next-route { font-size:14px; opacity:.9; margin-bottom:10px; }
-.next-pills { display:flex; gap:8px; flex-wrap:wrap; }
-.next-pill  { background:rgba(255,255,255,.2); border-radius:20px; padding:3px 11px; font-size:12px; font-weight:600; }
-.next-mins  { font-size:12px; opacity:.8; margin-top:7px; }
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
 
-/* Next 3 buses row */
-.next3-row { display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; margin-bottom:16px; }
-.next3-row::-webkit-scrollbar { display:none; }
-.next3-card { flex-shrink:0; background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-sm); padding:12px 16px; min-width:130px; text-align:center; box-shadow:var(--shadow); }
-.next3-time  { font-size:18px; font-weight:800; color:var(--green); }
-.next3-route { font-size:11px; color:var(--text2); margin-top:2px; }
-.next3-bus   { font-size:11px; font-weight:700; color:var(--navy); margin-top:4px; }
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-light);
+}
+.dot.online { background: #10B981; box-shadow: 0 0 6px rgba(16,185,129,0.6); }
+.dot.syncing { background: #F59E0B; animation: pulse 1s infinite; }
+.dot.offline { background: #EF4444; }
 
-/* ── BUS CARD ────────────────────────────────────────────────── */
-.bus-card { background:var(--surface); border-radius:var(--radius); padding:14px 16px; margin-bottom:10px; border:1px solid var(--border); box-shadow:var(--shadow); transition:transform .15s,box-shadow .15s; }
-.bus-card:hover { transform:translateY(-1px); box-shadow:var(--shadow-md); }
-.bc-top   { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
-.bus-no   { background:var(--navy); color:white; padding:3px 11px; border-radius:20px; font-size:12px; font-weight:700; letter-spacing:.5px; }
-.bus-time { font-size:20px; font-weight:800; color:var(--green); }
-.bus-route-line { display:flex; align-items:center; gap:7px; margin-bottom:6px; }
-.stop     { font-size:14px; font-weight:600; }
-.arrow    { color:var(--green); font-size:13px; }
-.bc-footer { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; }
-.bc-meta  { font-size:12px; color:var(--text3); display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-.verified-text { color:var(--green); font-weight:700; }
-.type-badge   { font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px; letter-spacing:.3px; }
-.type-ktc     { background:#DBEAFE; color:#1D4ED8; }
-.type-private { background:#FEF9C3; color:#92400E; }
-.type-express { background:#FCE7F3; color:#9D174D; }
-.type-general { background:var(--green-light); color:var(--green-dark); }
-/* Action buttons */
-.card-actions { display:flex; gap:6px; flex-wrap:wrap; }
-.verify-btn { border:1.5px solid var(--green); color:var(--green); background:transparent; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; transition:all .15s; }
-.verify-btn:hover { background:var(--green); color:white; }
-.edit-btn { border:1.5px solid var(--blue); color:var(--blue); background:transparent; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; transition:all .15s; }
-.edit-btn:hover { background:var(--blue); color:white; }
-.del-btn  { border:1.5px solid var(--red); color:var(--red); background:transparent; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; transition:all .15s; }
-.del-btn:hover  { background:var(--red); color:white; }
-.fav-btn  { border:1.5px solid var(--amber); color:var(--amber); background:transparent; padding:4px 10px; border-radius:20px; font-size:13px; cursor:pointer; font-family:inherit; transition:all .15s; }
-.fav-btn.active { background:var(--amber); color:white; }
-.share-btn { border:1.5px solid var(--text2); color:var(--text2); background:transparent; padding:4px 10px; border-radius:20px; font-size:13px; cursor:pointer; font-family:inherit; transition:all .15s; }
-.share-btn:hover { background:var(--text2); color:white; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
 
-/* ── CROWD INDICATOR ─────────────────────────────────────────── */
-.crowd-row { display:flex; gap:6px; margin:6px 0; flex-wrap:wrap; }
-.crowd-btn { border:1.5px solid var(--border); background:transparent; border-radius:20px; padding:3px 10px; font-size:12px; cursor:pointer; font-family:inherit; transition:all .15s; font-weight:600; }
-.crowd-btn:hover { border-color:var(--green); }
-.crowd-btn.active-empty  { background:#DCFCE7; border-color:var(--green); color:var(--green-dark); }
-.crowd-btn.active-medium { background:#FEF9C3; border-color:var(--amber); color:#92400E; }
-.crowd-btn.active-full   { background:#FEE2E2; border-color:var(--red); color:var(--red); }
-.crowd-result { font-size:12px; color:var(--text2); margin-left:4px; }
+.icon-btn {
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
 
-/* ── COMMENTS ────────────────────────────────────────────────── */
-.comments-section { margin-top:8px; border-top:1px solid var(--border); padding-top:8px; }
-.comment-item { font-size:12px; color:var(--text2); padding:4px 0; display:flex; justify-content:space-between; gap:8px; }
-.comment-name { font-weight:700; color:var(--text); }
-.add-comment-row { display:flex; gap:6px; margin-top:6px; }
-.add-comment-row input { font-size:13px; padding:7px 10px; }
-.comment-submit { flex-shrink:0; padding:7px 12px; background:var(--green); color:white; border:none; border-radius:var(--radius-sm); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; }
+.icon-btn:hover {
+  background: var(--border);
+}
 
-/* ── ALERTS ──────────────────────────────────────────────────── */
-.alert-card { background:var(--surface); border-radius:var(--radius); padding:13px 15px; margin-bottom:10px; border-left:4px solid var(--amber); box-shadow:var(--shadow); }
-.alert-card.danger  { border-left-color:var(--red); }
-.alert-card.success { border-left-color:var(--green); }
-.alert-card.info    { border-left-color:var(--blue); }
-.alert-msg  { font-size:14px; font-weight:600; margin-bottom:3px; }
-.alert-meta { font-size:12px; color:var(--text3); }
+/* ── ALERT BANNER ─────────────────────────────────────────── */
+.global-alert-banner {
+  display: none;
+  background: var(--amber-light);
+  border-bottom: 1px solid var(--amber);
+  color: #B45309;
+  padding: 9px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
 
-/* ── SUGGESTER WIDGET ────────────────────────────────────────── */
-.suggest-card { background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%); border-radius:var(--radius); padding:18px; margin-bottom:16px; color:white; }
-.suggest-title { font-size:14px; font-weight:800; margin-bottom:12px; }
-.suggest-row   { display:flex; gap:8px; margin-bottom:10px; }
-.suggest-row select { flex:1; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); color:white; font-size:13px; padding:9px 12px; }
-.suggest-row select option { background:var(--navy); color:white; }
-.suggest-result { background:rgba(255,255,255,.1); border-radius:var(--radius-sm); padding:12px; margin-top:8px; font-size:14px; line-height:1.7; }
-.suggest-result strong { font-size:22px; display:block; margin-bottom:2px; }
+.global-alert-banner.danger {
+  background: var(--red-light);
+  border-bottom-color: var(--red);
+  color: #B91C1C;
+}
 
-/* ── ROUTE VISUALIZATION ─────────────────────────────────────── */
-.route-viz { background:var(--surface); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); }
-.route-stop { display:flex; align-items:flex-start; gap:12px; }
-.stop-dot   { width:12px; height:12px; border-radius:50%; background:var(--green); margin-top:4px; flex-shrink:0; }
-.stop-dot.end { background:var(--red); }
-.stop-line  { width:2px; height:28px; background:var(--border); margin-left:5px; }
-.stop-label { font-size:14px; font-weight:600; }
-.stop-time  { font-size:12px; color:var(--text2); }
-.stop-tap   { font-size:11px; color:var(--green); font-weight:700; cursor:pointer; text-decoration:underline; }
+/* ── MAIN CONTENT & PAGES ─────────────────────────────────── */
+.main-content {
+  flex: 1;
+  padding-bottom: 84px;
+}
 
-/* ── POPULARITY ──────────────────────────────────────────────── */
-.pop-item { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
-.pop-rank  { font-size:18px; font-weight:800; color:var(--text3); width:28px; }
-.pop-route { font-size:14px; font-weight:600; flex:1; }
-.pop-count { font-size:12px; color:var(--text2); }
-.pop-bar   { width:100%; height:5px; background:var(--border); border-radius:10px; margin-top:4px; }
-.pop-fill  { height:100%; background:var(--green); border-radius:10px; transition:width .5s; }
+.page {
+  display: none;
+  animation: fadeIn 0.2s ease;
+}
 
-/* ── FORM ────────────────────────────────────────────────────── */
-.form-card { background:var(--surface); border-radius:var(--radius); padding:18px; margin:16px 18px; box-shadow:var(--shadow); }
-.form-group { margin-bottom:15px; }
-.form-label { display:block; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--text2); margin-bottom:6px; }
-.form-hint  { font-size:12px; color:var(--text3); margin-top:4px; }
+.page.active {
+  display: block;
+}
 
-/* ── AUTH ────────────────────────────────────────────────────── */
-.auth-wrap { min-height:calc(100vh - 56px); display:flex; align-items:center; justify-content:center; padding:20px; }
-.auth-card { background:var(--surface); border-radius:var(--radius); padding:28px 22px; width:100%; max-width:400px; box-shadow:var(--shadow-md); }
-.auth-logo { text-align:center; margin-bottom:22px; }
-.auth-logo .icon { font-size:36px; margin-bottom:6px; }
-.auth-logo h2    { font-size:21px; font-weight:800; }
-.auth-logo p     { font-size:13px; color:var(--text2); margin-top:3px; }
-.auth-or { display:flex; align-items:center; gap:10px; color:var(--text3); font-size:13px; margin:12px 0; }
-.auth-or::before,.auth-or::after { content:''; flex:1; height:1px; background:var(--border); }
-.auth-switch { text-align:center; margin-top:14px; font-size:14px; color:var(--text2); }
-.auth-switch a { color:var(--green); font-weight:700; cursor:pointer; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-/* ── PROFILE ─────────────────────────────────────────────────── */
-.profile-top { background:linear-gradient(135deg,var(--navy),var(--navy2)); padding:28px 18px; color:white; text-align:center; }
-.avatar { width:60px; height:60px; background:var(--green); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800; margin:0 auto 10px; border:3px solid rgba(255,255,255,.2); }
-.profile-name  { font-size:19px; font-weight:800; }
-.profile-email { font-size:13px; opacity:.55; margin-top:3px; }
-.profile-stats { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:14px; }
-.stat-pill { background:rgba(255,255,255,.1); padding:7px 16px; border-radius:20px; font-size:13px; }
-.setting-row { background:var(--surface); padding:15px 18px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; cursor:pointer; transition:background .15s; }
-.setting-row:hover { background:var(--bg); }
-.setting-left { display:flex; align-items:center; gap:12px; }
-.setting-icon  { font-size:18px; width:26px; text-align:center; }
-.setting-label { font-size:15px; font-weight:600; }
-.setting-desc  { font-size:12px; color:var(--text3); margin-top:2px; }
+/* ── HERO BANNER ──────────────────────────────────────────── */
+.hero-box {
+  padding: 16px 16px 8px;
+}
 
-/* ── POPULAR ROUTES GRID ─────────────────────────────────────── */
-.routes-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.route-chip { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-sm); padding:12px; cursor:pointer; transition:all .15s; text-align:center; }
-.route-chip:hover { border-color:var(--green); background:var(--green-light); }
-.route-chip-from  { font-size:12px; color:var(--text3); margin-bottom:2px; }
-.route-chip-arrow { font-size:16px; margin:2px 0; }
-.route-chip-to    { font-size:13px; font-weight:700; color:var(--text); }
+.hero-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
 
-/* ── RESULT BOX ──────────────────────────────────────────────── */
-.result-box { background:var(--surface); border-radius:var(--radius); overflow:hidden; margin-top:14px; box-shadow:var(--shadow); }
-.result-head { background:var(--navy); color:white; padding:10px 15px; font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
+.hero-greeting {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
 
-/* ── BADGE ───────────────────────────────────────────────────── */
-.badge { background:var(--green); color:white; border-radius:20px; padding:2px 9px; font-size:11px; font-weight:700; }
-.badge-red   { background:var(--red); }
-.badge-amber { background:var(--amber); }
-.badge-navy  { background:var(--navy); }
+.live-time-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-hover);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+}
 
-/* ── ADMIN PANEL ─────────────────────────────────────────────── */
-.admin-panel { display:none; }
-.admin-panel.visible { display:block; }
-.admin-stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:18px; }
-.admin-stat { background:var(--surface); border-radius:var(--radius-sm); padding:14px; text-align:center; box-shadow:var(--shadow); border-left:3px solid var(--green); }
-.admin-stat-num   { font-size:28px; font-weight:800; color:var(--green); }
-.admin-stat-label { font-size:12px; color:var(--text2); margin-top:2px; }
+/* ── NEXT BUS SPOTLIGHT ───────────────────────────────────── */
+.next-bus-card {
+  background: linear-gradient(135deg, #059669 0%, #10B981 100%);
+  color: white;
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: 0 6px 20px rgba(16,185,129,0.25);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 14px;
+  cursor: pointer;
+}
 
-/* ── MODAL ───────────────────────────────────────────────────── */
-.modal-overlay { display:none; position:fixed; inset:0; z-index:500; background:rgba(0,0,0,.55); align-items:flex-end; justify-content:center; }
-.modal-overlay.open { display:flex; }
-.modal-box { background:var(--surface); border-radius:20px 20px 0 0; padding:24px 20px 36px; width:100%; max-width:480px; animation:slideUp .25s ease; max-height:90vh; overflow-y:auto; }
-@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
-.modal-title { font-size:18px; font-weight:800; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; }
-.modal-close { width:30px; height:30px; border-radius:50%; background:var(--bg); border:none; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; }
+.next-bus-card::after {
+  content: '🚌';
+  position: absolute;
+  right: -10px;
+  bottom: -15px;
+  font-size: 80px;
+  opacity: 0.12;
+  pointer-events: none;
+}
 
-/* ── PWA INSTALL ─────────────────────────────────────────────── */
-#installBanner { display:none; background:linear-gradient(90deg,var(--green),#22C55E); color:white; padding:12px 18px; font-size:13px; font-weight:700; align-items:center; justify-content:space-between; gap:10px; }
-#installBanner.show { display:flex; }
-.install-dismiss { background:rgba(255,255,255,.2); border:none; color:white; border-radius:20px; padding:4px 12px; cursor:pointer; font-size:12px; font-weight:700; font-family:inherit; }
+.nb-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
 
-/* ── SKELETON LOADER ─────────────────────────────────────────── */
-.skeleton { background:linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; border-radius:var(--radius-sm); }
-@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-.skeleton-card { height:120px; margin-bottom:10px; }
-.skeleton-text { height:16px; width:60%; margin:8px 0; }
-.skeleton-title { height:24px; width:40%; }
+.nb-badge {
+  background: rgba(255,255,255,0.22);
+  backdrop-filter: blur(4px);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
 
-/* ── MISC ────────────────────────────────────────────────────── */
-.loader { display:flex; justify-content:center; padding:30px; }
-.spinner { width:26px; height:26px; border:3px solid var(--border); border-top-color:var(--green); border-radius:50%; animation:spin .65s linear infinite; }
-@keyframes spin { to{transform:rotate(360deg)} }
-.empty { text-align:center; padding:44px 20px; color:var(--text3); }
-.empty .ico { font-size:44px; margin-bottom:10px; }
-.empty p { font-size:14px; line-height:1.6; }
-#toast { position:fixed; bottom:82px; left:50%; transform:translateX(-50%) translateY(8px); background:var(--navy); color:white; padding:11px 22px; border-radius:30px; font-size:14px; font-weight:600; opacity:0; transition:all .25s; z-index:999; pointer-events:none; white-space:nowrap; max-width:90vw; text-align:center; }
-#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-#toast.ok  { background:var(--green); }
-#toast.err { background:var(--red); }
-@media(max-width:360px) { .hero-h1{font-size:20px} .next-time{font-size:30px} .routes-grid{grid-template-columns:1fr} .admin-stat-grid{grid-template-columns:1fr} }
+.nb-countdown {
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(0,0,0,0.25);
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+}
+
+.nb-time {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.nb-route {
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.95;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.nb-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.nb-tag {
+  background: rgba(255,255,255,0.2);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* Next Departures Carousel */
+.upcoming-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-bottom: 16px;
+  padding-bottom: 2px;
+}
+.upcoming-scroll::-webkit-scrollbar { display: none; }
+
+.upcoming-item {
+  flex-shrink: 0;
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  min-width: 125px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.upcoming-item:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.upcoming-item .u-time {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.upcoming-item .u-route {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+}
+
+.upcoming-item .u-bus {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-top: 2px;
+}
+
+/* ── SEARCH CARD ──────────────────────────────────────────── */
+.search-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 16px;
+}
+
+.search-inputs-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.search-inputs-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.search-input-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 10px;
+  font-size: 14px;
+  color: var(--text-light);
+  pointer-events: none;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 9px 12px 9px 32px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--primary);
+  background: var(--surface);
+}
+
+.swap-btn {
+  background: var(--surface-hover);
+  border: 1.5px solid var(--border);
+  color: var(--primary);
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.swap-btn:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+.quick-chips-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-top: 4px;
+}
+.quick-chips-row::-webkit-scrollbar { display: none; }
+
+.quick-chip {
+  flex-shrink: 0;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.quick-chip:hover {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border-color: var(--primary);
+}
+
+/* ── FILTER CHIPS ─────────────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 16px 12px;
+}
+.filter-bar::-webkit-scrollbar { display: none; }
+
+.pill {
+  flex-shrink: 0;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  color: var(--text-muted);
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pill:hover {
+  border-color: var(--text-light);
+}
+
+.pill.active {
+  background: var(--text-main);
+  border-color: var(--text-main);
+  color: var(--bg);
+}
+
+body.dark-mode .pill.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+/* ── BUS CARD (Simplified & Clean) ────────────────────────── */
+.bus-list {
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bus-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 13px 15px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.bus-card:hover {
+  border-color: var(--primary);
+}
+
+.bus-card.passed {
+  opacity: 0.55;
+  filter: grayscale(0.2);
+}
+
+.card-main-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.card-time-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-time {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1.1;
+}
+
+.card-mins-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.card-route-col {
+  flex: 1;
+  padding-left: 6px;
+}
+
+.card-route-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.route-arrow {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.card-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+  flex-wrap: wrap;
+}
+
+.bus-pill {
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.type-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.type-general { background: var(--gen-bg); color: var(--gen-text); }
+.type-ktc     { background: var(--ktc-bg); color: var(--ktc-text); }
+.type-private { background: var(--pvt-bg); color: var(--pvt-text); }
+.type-express { background: var(--exp-bg); color: var(--exp-text); }
+
+.card-notes {
+  font-size: 12px;
+  color: var(--primary-dark);
+  background: var(--primary-light);
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+body.dark-mode .card-notes {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6EE7B7;
+}
+
+/* Card Actions Toolbar */
+.card-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+  gap: 6px;
+}
+
+.crowd-selector {
+  display: flex;
+  gap: 4px;
+}
+
+.crowd-chip {
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--text-muted);
+}
+
+.crowd-chip.selected-empty { background: #DCFCE7; color: #15803D; border-color: #16A34A; }
+.crowd-chip.selected-medium { background: #FEF3C7; color: #B45309; border-color: #F59E0B; }
+.crowd-chip.selected-full { background: #FEE2E2; color: #B91C1C; border-color: #EF4444; }
+
+.action-buttons-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.action-chip {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: var(--radius-full);
+  padding: 3px 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: all 0.15s;
+}
+
+.action-chip:hover {
+  background: var(--surface-hover);
+  color: var(--text-main);
+}
+
+.action-chip.fav-active {
+  background: #FEF3C7;
+  color: #B45309;
+  border-color: #F59E0B;
+}
+
+.action-chip.verified-badge {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Collapsible Comments */
+.card-details-drawer {
+  display: none;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+  animation: fadeIn 0.15s ease;
+}
+
+.card-details-drawer.open {
+  display: block;
+}
+
+.comment-input-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.comment-input-row input {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.comment-input-row button {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+/* ── BUTTONS ──────────────────────────────────────────────── */
+.btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+
+.btn:hover {
+  background: var(--primary-dark);
+}
+
+.btn-secondary {
+  background: var(--surface-hover);
+  color: var(--text-main);
+  border: 1.5px solid var(--border);
+}
+.btn-secondary:hover {
+  background: var(--border);
+}
+
+.btn-danger {
+  background: var(--red);
+  color: white;
+}
+
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+/* ── BOTTOM NAVIGATION ────────────────────────────────────── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--nav-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  max-width: 680px;
+  margin: 0 auto;
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.04);
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s;
+  gap: 2px;
+}
+
+.nav-item .nav-icon {
+  font-size: 19px;
+}
+
+.nav-item.active {
+  color: var(--primary);
+}
+
+/* ── TABLE VIEW FOR TIMINGS ───────────────────────────────── */
+.table-container {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  margin: 0 16px;
+}
+
+table.timings-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12.5px;
+}
+
+table.timings-table th {
+  background: var(--surface-hover);
+  padding: 9px 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+table.timings-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+table.timings-table tr:last-child td {
+  border-bottom: none;
+}
+
+table.timings-table tr:hover {
+  background: var(--surface-hover);
+}
+
+/* ── ROUTE VISUALIZATION ──────────────────────────────────── */
+.timeline-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin: 0 16px 16px;
+}
+
+.timeline-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  position: relative;
+}
+
+.step-marker-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.step-node {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: 2.5px solid var(--surface-card);
+  box-shadow: 0 0 0 1.5px var(--primary);
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+.step-node.end {
+  background: var(--red);
+  box-shadow: 0 0 0 1.5px var(--red);
+}
+
+.step-stem {
+  width: 2px;
+  background: var(--border);
+  flex: 1;
+  min-height: 28px;
+  margin: 3px 0;
+}
+
+.step-content {
+  flex: 1;
+  padding-bottom: 14px;
+}
+
+.step-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.step-time-badge {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+/* ── SECTION TITLE ────────────────────────────────────────── */
+.section-head {
+  padding: 14px 16px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── CARD BOXES & FORMS ───────────────────────────────────── */
+.form-box {
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin: 0 16px 16px;
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+/* ── MODAL ────────────────────────────────────────────────── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+
+.modal-sheet {
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px 18px 36px;
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+/* ── TOAST NOTIFICATIONS ──────────────────────────────────── */
+#toast {
+  position: fixed;
+  bottom: 78px;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: #0F172A;
+  color: white;
+  padding: 9px 18px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0;
+  transition: all 0.2s;
+  z-index: 999;
+  pointer-events: none;
+  box-shadow: var(--shadow-lg);
+  max-width: 90vw;
+  text-align: center;
+}
+
+body.dark-mode #toast {
+  background: #1E293B;
+  border: 1px solid var(--border);
+}
+
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+#toast.ok { background: #059669; }
+#toast.err { background: #DC2626; }
+
+/* ── EMPTY STATE & SPINNER ────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 36px 16px;
+  color: var(--text-muted);
+}
+.empty-icon { font-size: 36px; margin-bottom: 8px; }
+.empty-text { font-size: 13px; }
+
+.loader-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Floating Add Button */
+.fab-add {
+  position: fixed;
+  bottom: 68px;
+  right: 18px;
+  background: var(--primary);
+  color: white;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  box-shadow: 0 4px 16px var(--primary-glow);
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 90;
+  transition: transform 0.15s;
+}
+.fab-add:hover { transform: scale(1.08); }
 </style>
 </head>
 <body>
 
-<!-- TOP BAR -->
-<div class="topbar">
-  <div class="brand">
-    <div class="brand-icon">🚍</div>
-    Campus<em>Bus</em>
-  </div>
-  <div class="topbar-right">
-    <button class="btn btn-sm btn-ghost" id="themeToggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
-    <div id="notifBell" style="display:none;cursor:pointer;font-size:20px;position:relative" onclick="toggleNotifPanel()">
-      🔔<span id="notifDot" style="display:none;position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:var(--red);border-radius:50%;border:1.5px solid var(--navy)"></span>
-    </div>
-    <div class="login-chip" id="loginChip" onclick="handleLoginChip()">
-      <div class="status-dot" id="statusDot"></div>
-      <span id="chipLabel">Login</span>
-    </div>
-  </div>
-</div>
+<div class="app-container">
 
-<!-- OFFLINE BANNER -->
-<div id="offlineBanner">📵 You're offline — showing cached timetable</div>
-
-<!-- PWA INSTALL BANNER -->
-<div id="installBanner">
-  📲 Install CampusBus as an app!
-  <div style="display:flex;gap:8px">
-    <button class="install-dismiss" id="installBtn">Install</button>
-    <button class="install-dismiss" onclick="document.getElementById('installBanner').classList.remove('show')">✕</button>
-  </div>
-</div>
-
-<!-- ============================================================
-     PAGE: HOME
-============================================================ -->
-<div class="page active" id="page-home">
-  <div class="hero">
-    <div class="hero-tag">ACMSR · Goa Public Transit</div>
-    <h1 class="hero-h1">Find Your Bus 🚍</h1>
-    <p class="hero-sub">Community-powered timings for all Goa routes</p>
-    <div class="date-chip" id="dateChip">📅 Loading...</div>
-
-    <!-- Search -->
-    <div class="search-card">
-      <div class="stop-row">
-        <input list="stops-list" id="searchFrom" placeholder="📍 From — e.g. ACMSR, Varca...">
-        <input list="stops-list" id="searchTo"   placeholder="🏁 To — e.g. Kamat, Margao...">
-      </div>
-      <datalist id="stops-list">
-        <option value="ACMSR College">
-        <option value="ACMSR College (Borda)">
-        <option value="Borda">
-        <option value="Kamat (Margao Bus Stand)">
-        <option value="Kamat Bus Stand">
-        <option value="KTC Bus Stand">
-        <option value="Margao KTC Bus Stand">
-        <option value="Margao">
-        <option value="Varca">
-        <option value="Mobor">
-        <option value="Colva">
-        <option value="Benaulim">
-        <option value="Navelim">
-        <option value="Fatorda">
-        <option value="Cuncolim">
-        <option value="Canacona">
-        <option value="Ponda">
-        <option value="Mapusa">
-        <option value="Curtorim">
-        <option value="Macasana">
-        <option value="Maina">
-        <option value="Shiroda">
-        <option value="Holy Spirit Church">
-        <option value="Margao Hospicio">
-        <option value="Session Court">
-        <option value="Colva Circle">
-      </datalist>
-      <button class="btn" onclick="doSearch()">🔎 Search</button>
-      <div id="recentSearches" style="margin-top:12px;font-size:13px;color:var(--text3)"></div>
-      <div id="searchResult"></div>
-    </div>
-  </div>
-
-  <!-- Smart Suggester -->
-  <div class="section" style="margin-top:16px">
-    <div class="suggest-card">
-      <div class="suggest-title">🤔 Which Bus Should I Take?</div>
-      <div class="suggest-row">
-        <select id="suggestFrom">
-          <option value="">📍 I'm at...</option>
-          <option>ACMSR College</option>
-          <option>ACMSR College (Borda)</option>
-          <option>Kamat Bus Stand</option>
-          <option>Varca</option>
-          <option>Mobor</option>
-          <option>Margao</option>
-          <option>KTC Bus Stand</option>
-        </select>
-        <select id="suggestTo">
-          <option value="">🏁 Going to...</option>
-          <option>ACMSR College</option>
-          <option>Kamat Bus Stand</option>
-          <option>Varca</option>
-          <option>Mobor</option>
-          <option>Margao</option>
-          <option>KTC Bus Stand</option>
-          <option>Margao KTC Bus Stand</option>
-        </select>
-      </div>
-      <button class="btn" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4)" onclick="runSuggester()">⚡ Find Best Bus</button>
-      <div id="suggestResult"></div>
-    </div>
-  </div>
-
-  <!-- Popular Routes -->
-  <div class="section">
-    <div class="section-title">⭐ Popular Routes</div>
-    <div class="routes-grid" id="popularRoutes"></div>
-  </div>
-
-  <!-- Next Bus -->
-  <div class="section" style="margin-top:16px">
-    <div class="section-title">⚡ Next Bus</div>
-    <div id="nextBusSlot"><div class="loader"><div class="spinner"></div></div></div>
-    <!-- Next 3 -->
-    <div class="section-title" style="margin-top:14px">🕐 Coming Up</div>
-    <div class="next3-row" id="next3Row"></div>
-  </div>
-
-  <!-- Most Popular Today -->
-  <div class="section">
-    <div class="section-title">📊 Popular Today</div>
-    <div id="popularToday"><div class="loader"><div class="spinner"></div></div></div>
-  </div>
-
-  <!-- Route Gap Alerts -->
-  <div class="section" style="padding-top:0" id="gapAlertsSection" style="display:none">
-    <div id="gapAlerts"></div>
-  </div>
-
-  <!-- Data Completeness -->
-  <div class="section" style="padding-top:0">
-    <div class="completeness-bar">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:13px;font-weight:700">📋 Data Completeness</span>
-        <span id="completenessText" style="font-size:13px;color:var(--text2)">Loading...</span>
-      </div>
-      <div class="completeness-track"><div class="completeness-fill" id="completenessFill" style="width:0%"></div></div>
-      <div style="font-size:12px;color:var(--text2)" id="completenessDetail">Checking bus data...</div>
-    </div>
-  </div>
-
-  <!-- Route Filter + List -->
-  <div class="pills" id="homePills">
-    <div class="pill active" onclick="homeFilter('all',this)">All Routes</div>
-    <div class="pill" onclick="homeFilter('ACMSR→Kamat',this)">ACMSR → Kamat</div>
-    <div class="pill" onclick="homeFilter('Kamat→Varca',this)">Kamat → Varca</div>
-    <div class="pill" onclick="homeFilter('Varca→KTC',this)">Varca → KTC</div>
-    <div class="pill" onclick="homeFilter('ACMSR→Margao',this)">ACMSR → Margao</div>
-    <div class="pill" onclick="homeFilter('Borda→Margao KTC',this)">Borda → KTC</div>
-  </div>
-  <div class="section" style="padding-top:0">
-    <div id="homeBuses"><div class="loader"><div class="spinner"></div></div></div>
-  </div>
-</div>
-
-<!-- ============================================================
-     PAGE: TIMINGS
-============================================================ -->
-<div class="page" id="page-timings">
-  <div class="page-head">
-    <div class="page-head-sub">All Routes</div>
-    <h2 class="page-head-h2">Bus Timings</h2>
-    <p class="page-head-p">All student-added timings</p>
-  </div>
-  <div class="pills" id="timingsPills" style="padding-top:12px">
-    <div class="pill active" onclick="timingsFilter('all',this)">All</div>
-    <div class="pill" onclick="timingsFilter('ACMSR→Kamat',this)">ACMSR → Kamat</div>
-    <div class="pill" onclick="timingsFilter('Kamat→Varca',this)">Kamat → Varca</div>
-    <div class="pill" onclick="timingsFilter('Varca→KTC',this)">Varca → KTC</div>
-    <div class="pill" onclick="timingsFilter('ACMSR→Margao',this)">ACMSR → Margao</div>
-    <div class="pill" onclick="timingsFilter('Kamat→ACMSR',this)">Kamat → ACMSR</div>
-    <div class="pill" onclick="timingsFilter('Borda→Margao KTC',this)">Borda → KTC</div>
-    <div class="pill" onclick="timingsFilter('Mobor→Margao',this)">Mobor → Margao</div>
-  </div>
-
-  <!-- View Toggle -->
-  <div style="display:flex;gap:8px;padding:10px 18px 0">
-    <button class="btn btn-sm" id="cardViewBtn" onclick="setTimingsView('card')" style="background:var(--navy)">🃏 Cards</button>
-    <button class="btn btn-sm btn-ghost" id="tableViewBtn" onclick="setTimingsView('table')">📋 Table</button>
-  </div>
-
-  <!-- Journey Planner -->
-  <div class="section" style="padding-top:14px">
-    <div class="suggest-card">
-      <div class="suggest-title">🗺️ Journey Planner (Multi-Hop)</div>
-      <div class="suggest-row">
-        <select id="journeyFrom">
-          <option value="">📍 Start from...</option>
-          <option>Varca</option><option>ACMSR College</option>
-          <option>Kamat Bus Stand</option><option>Mobor</option>
-          <option>Margao</option><option>KTC Bus Stand</option>
-        </select>
-        <select id="journeyTo">
-          <option value="">🏁 Going to...</option>
-          <option>Varca</option><option>ACMSR College</option>
-          <option>Kamat Bus Stand</option><option>Mobor</option>
-          <option>Margao</option><option>KTC Bus Stand</option>
-        </select>
-      </div>
-      <button class="btn" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4)" onclick="planJourney()">🗺️ Plan Journey</button>
-      <div id="journeyResult"></div>
-    </div>
-  </div>
-
-  <div class="section" style="padding-top:4px">
-    <div id="timingsBuses"><div class="loader"><div class="spinner"></div></div></div>
-  </div>
-</div>
-
-<!-- ============================================================
-     PAGE: ADD BUS
-============================================================ -->
-<div class="page" id="page-add">
-  <div class="page-head">
-    <div class="page-head-sub">Contribute</div>
-    <h2 class="page-head-h2">Add Bus Timing</h2>
-    <p class="page-head-p">Help fellow students — any Goa route!</p>
-  </div>
-
-  <!-- Not logged in -->
-  <div id="addLoginWall" style="display:none;padding:48px 20px;text-align:center">
-    <div style="font-size:48px;margin-bottom:14px">🔒</div>
-    <h3 style="font-size:17px;font-weight:800;margin-bottom:8px">Login to Contribute</h3>
-    <p style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px">Login to add bus timings for everyone at ACMSR.</p>
-    <button class="btn" style="max-width:270px;margin:0 auto" onclick="goPage('auth')">🚀 Login / Register</button>
-  </div>
-
-  <!-- Logged in -->
-  <div id="addFormWrap" style="display:none">
-    <div class="form-card">
-      <div class="section-title" style="margin-bottom:14px">🚌 Add New Bus Timing</div>
-      <div class="form-group"><label class="form-label">Bus Number</label><input id="fBusNo" placeholder="e.g. 9424, KTC-402..." maxlength="10"></div>
-      <div class="form-group"><label class="form-label">Bus Type</label><select id="fBusType"><option value="general">🟢 General / Town Bus</option><option value="ktc">🔵 KTC (Government)</option><option value="express">🟣 Express</option><option value="private">🟡 Private / Minibus</option></select></div>
-      <div class="form-group"><label class="form-label">From Stop</label><input list="stops-list" id="fFrom" placeholder="Type any stop — e.g. ACMSR College"><div class="form-hint">You can add any stop in Goa</div></div>
-      <div class="form-group"><label class="form-label">To Stop</label><input list="stops-list" id="fTo" placeholder="Type any stop — e.g. Margao, Mobor..."></div>
-      <div class="form-group"><label class="form-label">Departure Time</label><input type="time" id="fTime"><div class="form-hint">Time bus leaves the From stop</div></div>
-      <div class="form-group"><label class="form-label">Notes (optional)</label><textarea id="fNotes" rows="2" placeholder="e.g. Only on weekdays, Flacy route, via Colva..." style="resize:none"></textarea></div>
-      <button class="btn" onclick="submitTiming()">✅ Submit Timing</button>
-    </div>
-
-    <!-- Community Alert -->
-    <div class="form-card" style="margin-top:0">
-      <div class="section-title" style="margin-bottom:14px">📢 Post a Bus Alert</div>
-      <div class="form-group"><label class="form-label">Alert Type</label><select id="fAlertType"><option value="warning">⚠️ Bus Late</option><option value="danger">❌ Bus Cancelled</option><option value="success">✅ Bus On Time</option><option value="info">ℹ️ General Info</option></select></div>
-      <div class="form-group"><label class="form-label">Message</label><textarea id="fAlertMsg" rows="2" placeholder="e.g. Bus 9424 running 15 min late today..." style="resize:none"></textarea></div>
-      <button class="btn btn-navy" onclick="submitAlert()">📢 Post Alert</button>
-    </div>
-  </div>
-</div>
-
-<!-- ============================================================
-     PAGE: COMMUNITY
-============================================================ -->
-<div class="page" id="page-community">
-  <div class="page-head">
-    <div class="page-head-sub">Live Updates</div>
-    <h2 class="page-head-h2">Community</h2>
-    <p class="page-head-p">Student alerts — real time</p>
-  </div>
-
-  <!-- Route Visualization -->
-  <div class="section" style="padding-top:18px">
-    <div class="section-title">🗺️ Route Map</div>
-    <div class="route-viz">
-      <div id="routeVizSelect" style="margin-bottom:14px">
-        <select onchange="renderRouteViz(this.value)" style="font-size:13px">
-          <option value="borda-ktc">ACMSR (Borda) → Margao KTC</option>
-          <option value="college-kamat">ACMSR College → Kamat</option>
-          <option value="kamat-varca">Kamat → Varca</option>
-          <option value="mobor-margao">Mobor → Margao</option>
-        </select>
-      </div>
-      <div id="routeVizBody"></div>
-    </div>
-  </div>
-
-  <div class="section" style="padding-top:18px">
-    <div class="section-title">🏆 Top Contributors</div>
-    <div id="leaderboard"><div class="loader"><div class="spinner"></div></div></div>
-  </div>
-
-  <div class="section" style="padding-top:18px">
-    <div class="section-title">📢 Live Alerts <span class="badge badge-amber" id="alertBadge">0</span></div>
-    <div id="alertsList"><div class="loader"><div class="spinner"></div></div></div>
-  </div>
-</div>
-
-<!-- ============================================================
-     PAGE: AUTH
-============================================================ -->
-<div class="page" id="page-auth" style="padding-bottom:0">
-  <div class="auth-wrap">
-    <div class="auth-card">
-      <div class="auth-logo">
-        <div class="icon">🚍</div>
-        <h2>CampusBus</h2>
-        <p id="authTitle">Login to your account</p>
-      </div>
-      <div id="loginForm">
-        <div class="form-group"><label class="form-label">Email</label><input type="email" id="lEmail" placeholder="yourname@gmail.com"></div>
-        <div class="form-group"><label class="form-label">Password</label><input type="password" id="lPass" placeholder="Password"></div>
-        <button class="btn" onclick="doEmailLogin()" style="margin-bottom:10px">🔑 Login</button>
-        <div class="auth-or">or</div>
-        <button class="btn btn-google" onclick="doGoogleLogin()">
-          <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.7 33.1 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9l6-6C34.5 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-4z"/><path fill="#FF3D00" d="m6.3 14.7 7 5.1C15.1 16.1 19.2 13 24 13c3 0 5.8 1.1 7.9 2.9l6-6C34.5 6.1 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-1.9 13.7-5.1l-6.3-5.3C29.5 35.3 26.9 36 24 36c-5.2 0-9.6-2.9-11.3-7l-7 5.4C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.7 2.1-2 3.9-3.7 5.2l6.4 5.3C41.7 35 44 30 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
-          Continue with Google
-        </button>
-        <div class="auth-switch">No account? <a onclick="toggleAuth()">Register free</a></div>
-        <div class="auth-switch" style="margin-top:8px"><a onclick="goPage('home')" style="color:var(--text3)">← Back</a></div>
-      </div>
-      <div id="registerForm" style="display:none">
-        <div class="form-group"><label class="form-label">Email</label><input type="email" id="rEmail" placeholder="yourname@gmail.com"></div>
-        <div class="form-group"><label class="form-label">Password (min 6 chars)</label><input type="password" id="rPass" placeholder="Create a password"></div>
-        <button class="btn" onclick="doRegister()" style="margin-bottom:10px">🎓 Create Account</button>
-        <div class="auth-or">or</div>
-        <button class="btn btn-google" onclick="doGoogleLogin()">
-          <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.7 33.1 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9l6-6C34.5 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-4z"/><path fill="#FF3D00" d="m6.3 14.7 7 5.1C15.1 16.1 19.2 13 24 13c3 0 5.8 1.1 7.9 2.9l6-6C34.5 6.1 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-1.9 13.7-5.1l-6.3-5.3C29.5 35.3 26.9 36 24 36c-5.2 0-9.6-2.9-11.3-7l-7 5.4C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.7 2.1-2 3.9-3.7 5.2l6.4 5.3C41.7 35 44 30 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
-          Sign up with Google
-        </button>
-        <div class="auth-switch">Have account? <a onclick="toggleAuth()">Login</a></div>
-        <div class="auth-switch" style="margin-top:8px"><a onclick="goPage('home')" style="color:var(--text3)">← Back</a></div>
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="brand-wrap" onclick="goPage('home')">
+      <div class="brand-logo">🚍</div>
+      <div class="brand-text">
+        <div class="brand-title">Campus<span>Bus</span></div>
+        <div class="brand-sub">ACMSR Transit · Goa</div>
       </div>
     </div>
+    <div class="topbar-actions">
+      <!-- Live Sync Status -->
+      <div class="status-pill" id="cloudStatusPill" title="Firestore Server Status">
+        <div class="dot online" id="cloudDot"></div>
+        <span id="cloudLabel">Synced</span>
+      </div>
+      <button class="icon-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">🌙</button>
+      <button class="icon-btn" onclick="goPage('profile')" title="User Profile / Settings">👤</button>
+    </div>
+  </header>
+
+  <!-- ACTIVE DELAY / ALERT BANNER -->
+  <div class="global-alert-banner" id="globalAlertBanner">
+    <span id="globalAlertMsg">⚠️ Checking for route alerts...</span>
+    <button class="btn btn-sm btn-secondary" onclick="goPage('community')">View</button>
+  </div>
+
+  <!-- OFFLINE BANNER -->
+  <div id="offlineBanner" style="display:none;background:#F59E0B;color:white;text-align:center;padding:6px;font-size:12px;font-weight:700">
+    📵 You are offline — displaying cached timetable
+  </div>
+
+  <!-- MAIN PAGES -->
+  <main class="main-content">
+
+    <!-- ========================================================
+         TAB 1: HOME
+    ======================================================== -->
+    <div class="page active" id="page-home">
+      <div class="hero-box">
+        <div class="hero-header">
+          <div class="hero-greeting" id="userGreeting">👋 Student Timetable</div>
+          <div class="live-time-chip" id="dateChip">📅 Loading time...</div>
+        </div>
+
+        <!-- Next Bus Spotlight Card -->
+        <div id="nextBusSpotlight">
+          <div class="loader-wrap"><div class="spinner"></div></div>
+        </div>
+
+        <!-- Next 3 Upcoming Departures -->
+        <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">
+          🕐 Coming Up Next
+        </div>
+        <div class="upcoming-scroll" id="upcomingScroll">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Unified Instant Search Card -->
+        <div class="search-card">
+          <div class="search-inputs-wrap">
+            <div class="search-inputs-col">
+              <div class="search-input-field">
+                <span class="input-icon">📍</span>
+                <input list="stops-list" id="searchFrom" placeholder="From (e.g. ACMSR, Varca...)">
+              </div>
+              <div class="search-input-field">
+                <span class="input-icon">🏁</span>
+                <input list="stops-list" id="searchTo" placeholder="To (e.g. Kamat, Margao...)">
+              </div>
+            </div>
+            <button class="swap-btn" onclick="swapSearchStops()" title="Swap From & To">⇄</button>
+          </div>
+
+          <!-- Quick Location Chips -->
+          <div class="quick-chips-row">
+            <span class="quick-chip" onclick="setQuickSearch('ACMSR College','Kamat Bus Stand')">ACMSR → Kamat</span>
+            <span class="quick-chip" onclick="setQuickSearch('Kamat','Varca')">Kamat → Varca</span>
+            <span class="quick-chip" onclick="setQuickSearch('ACMSR College (Borda)','Margao KTC Bus Stand')">Borda → KTC</span>
+            <span class="quick-chip" onclick="setQuickSearch('Mobor','Margao')">Mobor → Margao</span>
+            <span class="quick-chip" onclick="setQuickSearch('Varca','ACMSR College')">Varca → ACMSR</span>
+          </div>
+
+          <datalist id="stops-list">
+            <option value="ACMSR College">
+            <option value="ACMSR College (Borda)">
+            <option value="Borda">
+            <option value="Kamat Bus Stand">
+            <option value="Kamat (Margao Bus Stand)">
+            <option value="Margao KTC Bus Stand">
+            <option value="KTC Bus Stand">
+            <option value="Margao">
+            <option value="Varca">
+            <option value="Mobor">
+            <option value="Colva">
+            <option value="Benaulim">
+            <option value="Cavelossim">
+            <option value="Navelim">
+            <option value="Fatorda">
+            <option value="Curtorim">
+            <option value="Maina">
+            <option value="Holy Spirit Church">
+          </datalist>
+
+          <div id="searchResultArea" style="margin-top:10px;display:none"></div>
+        </div>
+      </div>
+
+      <!-- Quick Route Filter Pills -->
+      <div class="filter-bar" id="homeFilterBar">
+        <div class="pill active" onclick="setHomeFilter('all', this)">All Routes</div>
+        <div class="pill" onclick="setHomeFilter('ACMSR→Kamat', this)">ACMSR → Kamat</div>
+        <div class="pill" onclick="setHomeFilter('Kamat→Varca', this)">Kamat → Varca</div>
+        <div class="pill" onclick="setHomeFilter('Borda→Margao KTC', this)">Borda → KTC</div>
+        <div class="pill" onclick="setHomeFilter('ACMSR→Margao', this)">ACMSR → Margao</div>
+        <div class="pill" onclick="setHomeFilter('Mobor→Margao', this)">Mobor → Margao</div>
+      </div>
+
+      <!-- Bus Cards Feed -->
+      <div class="bus-list" id="homeBusList">
+        <div class="loader-wrap"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         TAB 2: TIMINGS (Cards & Full Table)
+    ======================================================== -->
+    <div class="page" id="page-timings">
+      <div class="section-head">
+        <div class="section-title">🕒 All Timings</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm" id="viewBtnCards" onclick="setTimingsView('cards')">🃏 Cards</button>
+          <button class="btn btn-sm btn-secondary" id="viewBtnTable" onclick="setTimingsView('table')">📋 Table</button>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar" id="timingsFilterBar">
+        <div class="pill active" onclick="setTimingsFilter('all', this)">All</div>
+        <div class="pill" onclick="setTimingsFilter('ACMSR→Kamat', this)">ACMSR → Kamat</div>
+        <div class="pill" onclick="setTimingsFilter('Kamat→Varca', this)">Kamat → Varca</div>
+        <div class="pill" onclick="setTimingsFilter('Borda→Margao KTC', this)">Borda → KTC</div>
+        <div class="pill" onclick="setTimingsFilter('Mobor→Margao', this)">Mobor → Margao</div>
+      </div>
+
+      <div id="timingsCardsContainer" class="bus-list">
+        <div class="loader-wrap"><div class="spinner"></div></div>
+      </div>
+
+      <div id="timingsTableContainer" class="table-container" style="display:none">
+        <table class="timings-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Route</th>
+              <th>Bus #</th>
+              <th>Type</th>
+              <th>Verified</th>
+            </tr>
+          </thead>
+          <tbody id="timingsTableBody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         TAB 3: JOURNEY (Multi-Hop Planner & Route Map)
+    ======================================================== -->
+    <div class="page" id="page-journey">
+      <div class="section-head">
+        <div class="section-title">🗺️ Multi-Hop Journey Planner</div>
+      </div>
+
+      <div class="form-box">
+        <div class="form-group">
+          <label class="form-label">Starting Point</label>
+          <select id="jFrom">
+            <option value="Varca">Varca</option>
+            <option value="ACMSR College" selected>ACMSR College</option>
+            <option value="Kamat Bus Stand">Kamat Bus Stand</option>
+            <option value="Mobor">Mobor</option>
+            <option value="Margao">Margao</option>
+            <option value="Margao KTC Bus Stand">Margao KTC Bus Stand</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Destination</label>
+          <select id="jTo">
+            <option value="Varca">Varca</option>
+            <option value="ACMSR College">ACMSR College</option>
+            <option value="Kamat Bus Stand">Kamat Bus Stand</option>
+            <option value="Mobor" selected>Mobor</option>
+            <option value="Margao">Margao</option>
+            <option value="Margao KTC Bus Stand">Margao KTC Bus Stand</option>
+          </select>
+        </div>
+        <button class="btn btn-block" onclick="planJourney()">⚡ Find Best Route & Transfers</button>
+        <div id="journeyPlanResult" style="margin-top:12px"></div>
+      </div>
+
+      <!-- Route Visualizer -->
+      <div class="section-head">
+        <div class="section-title">📍 Route Stop Timeline</div>
+      </div>
+
+      <div class="timeline-card">
+        <div class="form-group" style="margin-bottom:14px">
+          <select onchange="renderRouteTimeline(this.value)">
+            <option value="borda-ktc">ACMSR (Borda) → Margao KTC</option>
+            <option value="college-kamat">ACMSR College → Kamat Bus Stand</option>
+            <option value="kamat-varca">Kamat → Varca (via Benaulim)</option>
+            <option value="mobor-margao">Mobor → Margao (via Cavelossim)</option>
+          </select>
+        </div>
+        <div id="timelineContainer"></div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         TAB 4: COMMUNITY (Alerts & Leaderboard)
+    ======================================================== -->
+    <div class="page" id="page-community">
+      <div class="section-head">
+        <div class="section-title">📢 Post Route Alert</div>
+      </div>
+
+      <div class="form-box">
+        <div class="form-group">
+          <label class="form-label">Alert Type</label>
+          <select id="postAlertType">
+            <option value="warning">⚠️ Bus Running Late</option>
+            <option value="danger">❌ Bus Cancelled</option>
+            <option value="success">✅ Bus On Time / Arrived</option>
+            <option value="info">ℹ️ Route / Road Info</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Message</label>
+          <input type="text" id="postAlertMsg" placeholder="e.g. Bus 9424 delayed by 15 mins due to rain...">
+        </div>
+        <button class="btn btn-block" onclick="submitAlert()">📢 Broadcast Alert</button>
+      </div>
+
+      <div class="section-head">
+        <div class="section-title">⚡ Live Community Feed</div>
+      </div>
+      <div class="bus-list" id="communityAlertsList">
+        <div class="loader-wrap"><div class="spinner"></div></div>
+      </div>
+
+      <div class="section-head" style="margin-top:10px">
+        <div class="section-title">🏆 Top Contributors</div>
+      </div>
+      <div class="form-box" id="leaderboardBox">
+        <div class="loader-wrap"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         TAB 5: ADD TIMING
+    ======================================================== -->
+    <div class="page" id="page-add">
+      <div class="section-head">
+        <div class="section-title">➕ Add Bus Timing</div>
+      </div>
+
+      <div class="form-box">
+        <div class="form-group">
+          <label class="form-label">Bus Number / Code</label>
+          <input type="text" id="addBusNo" placeholder="e.g. 9424, KTC-402" maxlength="12">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Bus Type</label>
+          <select id="addBusType">
+            <option value="general">🟢 General / Ordinary</option>
+            <option value="ktc">🔵 Kadamba (KTC Govt)</option>
+            <option value="private">🟡 Private Mini Bus</option>
+            <option value="express">🟣 Express</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">From Stop</label>
+          <input list="stops-list" id="addFrom" placeholder="Starting point (e.g. ACMSR College)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">To Stop</label>
+          <input list="stops-list" id="addTo" placeholder="Destination (e.g. Kamat Bus Stand)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Departure Time</label>
+          <input type="time" id="addTime">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes (Optional)</label>
+          <input type="text" id="addNotes" placeholder="e.g. Via Colva circle, morning trip only">
+        </div>
+        <button class="btn btn-block" onclick="submitNewTiming()">✅ Save Timing</button>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         TAB 6: PROFILE / SETTINGS & ADMIN
+    ======================================================== -->
+    <div class="page" id="page-profile">
+      <div class="section-head">
+        <div class="section-title">👤 Student Account</div>
+      </div>
+
+      <div class="form-box">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+          <div style="width:48px;height:48px;border-radius:50%;background:var(--primary);color:white;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800" id="userAvatar">
+            ?
+          </div>
+          <div>
+            <div style="font-size:16px;font-weight:800" id="userNameLabel">Guest User</div>
+            <div style="font-size:12px;color:var(--text-muted)" id="userEmailLabel">Not logged in</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+          <div style="background:var(--surface-hover);padding:10px;border-radius:var(--radius-sm);text-align:center">
+            <div style="font-size:18px;font-weight:800;color:var(--primary)" id="userStatAdded">0</div>
+            <div style="font-size:11px;color:var(--text-muted)">Buses Added</div>
+          </div>
+          <div style="background:var(--surface-hover);padding:10px;border-radius:var(--radius-sm);text-align:center">
+            <div style="font-size:18px;font-weight:800;color:var(--primary)" id="userStatVerified">0</div>
+            <div style="font-size:11px;color:var(--text-muted)">Verifications</div>
+          </div>
+        </div>
+
+        <div id="authActions">
+          <div id="loggedOutButtons">
+            <button class="btn btn-block" onclick="openAuthModal()" style="margin-bottom:8px">🔑 Login / Register</button>
+          </div>
+          <div id="loggedInButtons" style="display:none">
+            <button class="btn btn-secondary btn-block" onclick="doLogout()">🚪 Sign Out</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Saved Favorite Routes -->
+      <div class="section-head">
+        <div class="section-title">⭐ Saved Favorite Routes</div>
+      </div>
+      <div class="form-box" id="savedFavList">
+        <div style="font-size:12.5px;color:var(--text-muted)">Tap ⭐ on any bus card to save routes for fast access.</div>
+      </div>
+
+      <!-- Settings & PWA -->
+      <div class="section-head">
+        <div class="section-title">⚙️ App Settings</div>
+      </div>
+      <div class="form-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+          <div>
+            <div style="font-size:13.5px;font-weight:700">🔔 Push Notifications</div>
+            <div style="font-size:11.5px;color:var(--text-muted)">Get departure and delay alerts</div>
+          </div>
+          <button class="btn btn-sm btn-secondary" onclick="requestNotificationPermission()">Enable</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 6px;border-top:1px solid var(--border)">
+          <div>
+            <div style="font-size:13.5px;font-weight:700">📲 Install App (PWA)</div>
+            <div style="font-size:11.5px;color:var(--text-muted)">Fast offline home screen access</div>
+          </div>
+          <button class="btn btn-sm btn-secondary" onclick="triggerPWAInstall()">Install</button>
+        </div>
+      </div>
+
+      <!-- Admin Panel -->
+      <div id="adminPanelBox" style="display:none">
+        <div class="section-head">
+          <div class="section-title">🛡️ Admin Dashboard</div>
+        </div>
+        <div class="form-box">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+            <div style="background:var(--surface-hover);padding:10px;border-radius:var(--radius-sm);text-align:center">
+              <div style="font-size:18px;font-weight:800;color:var(--primary)" id="adminTotalBuses">-</div>
+              <div style="font-size:11px;color:var(--text-muted)">Total Routes</div>
+            </div>
+            <div style="background:var(--surface-hover);padding:10px;border-radius:var(--radius-sm);text-align:center">
+              <div style="font-size:18px;font-weight:800;color:var(--primary)" id="adminTotalAlerts">-</div>
+              <div style="font-size:11px;color:var(--text-muted)">Alerts</div>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-block" onclick="forceSyncSeedToServer()" style="margin-bottom:8px">
+            🔄 Force Sync Seed Data to Server
+          </button>
+          <button class="btn btn-secondary btn-block" onclick="exportDataJSON()" style="margin-bottom:8px">
+            📥 Export Timings JSON
+          </button>
+          <button class="btn btn-danger btn-block" onclick="clearOldAlertsAdmin()">
+            🗑️ Clear Old Alerts
+          </button>
+        </div>
+      </div>
+
+      <div style="padding:16px;text-align:center;font-size:11px;color:var(--text-light)">
+        CampusBus · ACMSR College Community Transit<br>
+        v5.4 Simplified · campusbus.pages.dev
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FLOATING ADD BUTTON -->
+  <button class="fab-add" onclick="goPage('add')" title="Add Bus Timing">➕</button>
+
+  <!-- BOTTOM NAVIGATION -->
+  <nav class="bottom-nav">
+    <div class="nav-item active" id="nav-home" onclick="goPage('home')">
+      <div class="nav-icon">🏠</div>
+      <span>Home</span>
+    </div>
+    <div class="nav-item" id="nav-timings" onclick="goPage('timings')">
+      <div class="nav-icon">🕒</div>
+      <span>Timings</span>
+    </div>
+    <div class="nav-item" id="nav-journey" onclick="goPage('journey')">
+      <div class="nav-icon">🗺️</div>
+      <span>Journey</span>
+    </div>
+    <div class="nav-item" id="nav-community" onclick="goPage('community')">
+      <div class="nav-icon">📢</div>
+      <span>Community</span>
+    </div>
+    <div class="nav-item" id="nav-profile" onclick="goPage('profile')">
+      <div class="nav-icon">👤</div>
+      <span>Me</span>
+    </div>
+  </nav>
+
+</div>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="authModal" onclick="if(event.target===this) closeAuthModal()">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <div style="font-size:17px;font-weight:800" id="authModalTitle">Student Login</div>
+      <button class="icon-btn" onclick="closeAuthModal()">✕</button>
+    </div>
+    <div id="loginFormArea">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" id="authEmail" placeholder="yourname@gmail.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="authPass" placeholder="Password">
+      </div>
+      <button class="btn btn-block" onclick="doEmailLogin()" style="margin-bottom:8px">🔑 Sign In</button>
+      <button class="btn btn-secondary btn-block" onclick="doGoogleLogin()" style="margin-bottom:12px">
+        🌐 Continue with Google
+      </button>
+      <div style="text-align:center;font-size:12.5px;color:var(--text-muted)">
+        Don't have an account? <a href="javascript:void(0)" onclick="toggleAuthForm(true)" style="color:var(--primary);font-weight:700">Register</a>
+      </div>
+    </div>
+    <div id="registerFormArea" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" id="regEmail" placeholder="yourname@gmail.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password (min 6 chars)</label>
+        <input type="password" id="regPass" placeholder="Create password">
+      </div>
+      <button class="btn btn-block" onclick="doRegister()" style="margin-bottom:8px">🎓 Create Account</button>
+      <button class="btn btn-secondary btn-block" onclick="doGoogleLogin()" style="margin-bottom:12px">
+        🌐 Sign up with Google
+      </button>
+      <div style="text-align:center;font-size:12.5px;color:var(--text-muted)">
+        Already registered? <a href="javascript:void(0)" onclick="toggleAuthForm(false)" style="color:var(--primary);font-weight:700">Login</a>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- ============================================================
-     PAGE: PROFILE
-============================================================ -->
-<div class="page" id="page-profile">
-  <div class="profile-top">
-    <div class="avatar" id="profileAvatar">?</div>
-    <div class="profile-name"  id="profileName">Guest</div>
-    <div class="profile-email" id="profileEmail">Not logged in</div>
-    <div class="profile-stats">
-      <div class="stat-pill">🚌 <span id="myCount">0</span> added</div>
-      <div class="stat-pill">✅ <span id="myVerify">0</span> verified</div>
-      <div class="stat-pill">⭐ <span id="myFavCount">0</span> saved</div>
+<!-- EDIT BUS MODAL -->
+<div class="modal-overlay" id="editModal" onclick="if(event.target===this) closeEditModal()">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <div style="font-size:17px;font-weight:800">✏️ Edit Bus Timing</div>
+      <button class="icon-btn" onclick="closeEditModal()">✕</button>
     </div>
-  </div>
-
-  <!-- Saved Favorite Routes -->
-  <div id="favSection" style="display:none">
-    <div style="padding:14px 18px 0">
-      <div class="section-title">⭐ My Saved Routes</div>
+    <input type="hidden" id="editBusId">
+    <div class="form-group">
+      <label class="form-label">Bus Number</label>
+      <input type="text" id="editBusNo">
     </div>
-    <div id="favList" style="padding:0 18px"></div>
-  </div>
-
-  <div class="setting-row" onclick="goPage('add')">
-    <div class="setting-left"><div class="setting-icon">➕</div><div><div class="setting-label">Add Bus Timing</div><div class="setting-desc">Contribute to the community</div></div></div>›
-  </div>
-  <div class="setting-row" onclick="goPage('community')">
-    <div class="setting-left"><div class="setting-icon">📢</div><div><div class="setting-label">Community Alerts</div><div class="setting-desc">See live student updates</div></div></div>›
-  </div>
-  <div class="setting-row" id="installRow" style="display:none" onclick="triggerInstall()">
-    <div class="setting-left"><div class="setting-icon">📲</div><div><div class="setting-label">Install App</div><div class="setting-desc">Add CampusBus to home screen</div></div></div>›
-  </div>
-  <div class="setting-row" id="notifRow" onclick="requestNotifPermission()">
-    <div class="setting-left"><div class="setting-icon">🔔</div><div><div class="setting-label">Bus Notifications</div><div class="setting-desc" id="notifDesc">Tap to enable bus alerts</div></div></div>
-    <span id="notifStatus" style="font-size:12px;font-weight:700;color:var(--text3)">OFF</span>
-  </div>
-  <div class="setting-row" onclick="goPage('auth')" id="loginRow">
-    <div class="setting-left"><div class="setting-icon">🔑</div><div><div class="setting-label">Login / Register</div><div class="setting-desc">Access all features</div></div></div>›
-  </div>
-  <div class="setting-row" onclick="doLogout()" id="logoutRow" style="display:none">
-    <div class="setting-left"><div class="setting-icon">🚪</div><div><div class="setting-label">Logout</div><div class="setting-desc">Sign out of your account</div></div></div>›
-  </div>
-
-  <!-- Admin Panel (admin only) -->
-  <div id="adminSection" class="admin-panel">
-    <div style="padding:18px 18px 8px">
-      <div class="section-title">🛡️ Admin Dashboard</div>
-    </div>
-    <div class="admin-stat-grid">
-      <div class="admin-stat"><div class="admin-stat-num" id="adminBusCount">-</div><div class="admin-stat-label">Total Buses</div></div>
-      <div class="admin-stat"><div class="admin-stat-num" id="adminAlertCount">-</div><div class="admin-stat-label">Alerts Posted</div></div>
-      <div class="admin-stat"><div class="admin-stat-num" id="adminCommentCount">-</div><div class="admin-stat-label">Comments</div></div>
-      <div class="admin-stat"><div class="admin-stat-num" id="adminSearchCount">-</div><div class="admin-stat-label">Searches Today</div></div>
-    </div>
-    <div style="padding:0 18px 18px">
-      <button class="btn btn-navy" onclick="adminExportJSON()" style="margin-bottom:10px">📥 Export Bus Data (JSON)</button>
-      <button class="btn btn-red"  onclick="adminClearOldAlerts()">🗑️ Clear Old Alerts (>7 days)</button>
-    </div>
-  </div>
-
-  <div style="padding:22px 18px;text-align:center;color:var(--text3);font-size:11px;letter-spacing:.5px">
-    CAMPUSBUS · ACMSR COMMUNITY TRANSIT<br>
-    <span style="color:var(--text3)">v5.3 Improved · Made by <strong style="color:var(--green)">ZevBuild</strong> · campusbus.pages.dev</span>
-  </div>
-</div>
-
-<!-- BOTTOM NAV -->
-<div class="bottom-nav" id="bottomNav">
-  <div class="nav-btn active" id="nav-home"      onclick="goPage('home')">      <div class="ico">🏠</div>Home</div>
-  <div class="nav-btn"        id="nav-timings"   onclick="goPage('timings')">   <div class="ico">🕐</div>Timings</div>
-  <div class="nav-btn"        id="nav-add"       onclick="goPage('add')">       <div class="ico">➕</div>Add</div>
-  <div class="nav-btn"        id="nav-community" onclick="goPage('community')"> <div class="ico">📢</div>Live</div>
-  <div class="nav-btn"        id="nav-profile"   onclick="goPage('profile')">   <div class="ico">👤</div>Me</div>
-</div>
-
-<!-- EDIT MODAL -->
-<div class="modal-overlay" id="editModal" onclick="closeEditModal(event)">
-  <div class="modal-box">
-    <div class="modal-title">✏️ Edit Bus Timing <button class="modal-close" onclick="closeModal()">✕</button></div>
-    <input type="hidden" id="editDocId">
-    <div class="form-group"><label class="form-label">Bus Number</label><input id="editBusNo" placeholder="e.g. 9424"></div>
-    <div class="form-group"><label class="form-label">Bus Type</label>
+    <div class="form-group">
+      <label class="form-label">Type</label>
       <select id="editBusType">
-        <option value="general">🟢 General</option><option value="ktc">🔵 KTC</option>
-        <option value="express">🟣 Express</option><option value="private">🟡 Private</option>
+        <option value="general">🟢 General</option>
+        <option value="ktc">🔵 KTC</option>
+        <option value="private">🟡 Private</option>
+        <option value="express">🟣 Express</option>
       </select>
     </div>
-    <div class="form-group"><label class="form-label">From Stop</label><input list="stops-list" id="editFrom"></div>
-    <div class="form-group"><label class="form-label">To Stop</label><input list="stops-list" id="editTo"></div>
-    <div class="form-group"><label class="form-label">Departure Time</label><input type="time" id="editTime"></div>
-    <div class="form-group"><label class="form-label">Notes</label><textarea id="editNotes" rows="2" style="resize:none"></textarea></div>
-    <button class="btn" onclick="saveEdit()" style="margin-bottom:10px">💾 Save Changes</button>
-    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <div class="form-group">
+      <label class="form-label">From</label>
+      <input list="stops-list" id="editFrom">
+    </div>
+    <div class="form-group">
+      <label class="form-label">To</label>
+      <input list="stops-list" id="editTo">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Time</label>
+      <input type="time" id="editTime">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes</label>
+      <input type="text" id="editNotes">
+    </div>
+    <button class="btn btn-block" onclick="saveBusEdit()" style="margin-bottom:8px">💾 Update Timing</button>
+    <button class="btn btn-secondary btn-block" onclick="closeEditModal()">Cancel</button>
   </div>
 </div>
-
-<!-- FAB — Floating Add Button -->
-<button class="fab" id="fab" onclick="goPage('add')" title="Add Bus Timing">➕</button>
 
 <div id="toast"></div>
 
 <!-- ============================================================
-     JAVASCRIPT
+     APPLICATION JAVASCRIPT
 ============================================================ -->
 <script>
-/* ── 1. UTILITIES (XSS prevention, time, etc.) ───────────────── */
-function escapeHtml(text) {
-  if (!text) return '';
-  return String(text).replace(/[&<>"]/g, function(c) {
-    if (c === '&') return '&amp;';
-    if (c === '<') return '&lt;';
-    if (c === '>') return '&gt;';
-    if (c === '"') return '&quot;';
-    return c;
-  });
-}
-
-function nowStr() {
-  const now = new Date();
-  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
-  const ist = new Date(utcMs + 5.5 * 3600000);
-  return ist.getHours().toString().padStart(2,'0') + ':' + ist.getMinutes().toString().padStart(2,'0');
-}
-function nowIST12() {
-  const now = new Date();
-  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
-  const ist = new Date(utcMs + 5.5 * 3600000);
-  const h = ist.getHours(), m = ist.getMinutes();
-  return `${h%12||12}:${m.toString().padStart(2,'0')} ${h>=12?'PM':'AM'}`;
-}
-function fmt(t) {
-  if (!t) return '';
-  const [h,m] = t.split(':');
-  const hour = parseInt(h,10);
-  return `${hour%12||12}:${m} ${hour>=12?'PM':'AM'}`;
-}
-function ago(ts) {
-  if (!ts) return '';
-  const m = Math.floor((Date.now()-ts)/60000);
-  if (m<1) return 'just now';
-  if (m<60) return `${m}m ago`;
-  const h = Math.floor(m/60);
-  if (h<24) return `${h}h ago`;
-  return `${Math.floor(h/24)}d ago`;
-}
-let _tt;
-function toast(msg, type='') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = 'show'+(type?' '+type:'');
-  clearTimeout(_tt);
-  _tt = setTimeout(()=>{ el.className=''; }, 3000);
-}
-
-/* ── 2. SEED DATA ────────────────────────────────────────────── */
+/* ── 1. SEED DATA (STRICTLY PRESERVED) ────────────────────────── */
 const SEED = [
-   { id:'s1',  busNo:'9424',      type:'general', from:'Varca',                    to:'ACMSR College',        time:'07:00', notes:'Morning via KTC',                                    addedBy:'raju', verified:[] },
+  { id:'s1',  busNo:'9424',      type:'general', from:'Varca',                    to:'ACMSR College',        time:'07:00', notes:'Morning via KTC',                                    addedBy:'raju', verified:[] },
   { id:'s2',  busNo:'4209',      type:'general', from:'Varca',                    to:'ACMSR College',        time:'11:00', notes:'',                                                   addedBy:'raju', verified:[] },
   { id:'s3',  busNo:'9424',      type:'general', from:'Varca',                    to:'ACMSR College',        time:'11:15', notes:'',                                                   addedBy:'raju', verified:['a','b','c','d','e'] },
   { id:'s4',  busNo:'1747',      type:'general', from:'Varca',                    to:'ACMSR College',        time:'11:44', notes:'Flacy Route',                                        addedBy:'raju', verified:[] },
@@ -931,7 +1782,6 @@ const SEED_ALERTS = [
   { id:'a2', type:'success', message:'1:30 ACMSR → Kamat bus confirmed on time ✅',      addedBy:'raju',     ts:Date.now()-3600000 },
 ];
 
-/* Route visualization data (same as v5.3) */
 const ROUTE_VIZ = {
   'borda-ktc': [
     { name:'ACMSR College (Borda Stop)', time:'Dep.', first:true },
@@ -962,54 +1812,225 @@ const ROUTE_VIZ = {
   ],
 };
 
-
-/* ── 3. STATE ─────────────────────────────────────────────────── */
+/* ── 2. APPLICATION STATE ─────────────────────────────────────── */
 const ADMIN_EMAIL = 'zevbuildstudio@gmail.com';
-let user = null;
+let currentUser = null;
 let buses = [...SEED];
 let alerts = [...SEED_ALERTS];
-let favorites = [];
-let crowdCache = {};
-let commentsCache = {};
-let analyticsCache = {};
-let homeRouteFilter = 'all';
-let timingsRouteFilter = 'all';
-let deferredInstall = null;
-let searchDebounceTimer = null;
+let favorites = JSON.parse(localStorage.getItem('campusbus_favs') || '[]');
+let crowdCache = JSON.parse(localStorage.getItem('campusbus_crowd') || '{}');
+let homeFilterKey = 'all';
+let timingsFilterKey = 'all';
+let currentTimingsView = 'cards';
+let deferredPWA = null;
 
-const POPULAR = [
-  { from:'ACMSR College', to:'Kamat Bus Stand' },
-  { from:'Kamat',         to:'Varca' },
-  { from:'Varca',         to:'KTC Bus Stand' },
-  { from:'ACMSR College', to:'Margao' },
-];
-const RECENT_SEARCHES_KEY = 'campusbus_recent_searches';
-
-function saveRecentSearch(from, to) {
-  if (!from || !to) return;
-  const key = `${from} → ${to}`;
-  let saved = JSON.parse(localStorage.getItem(RECENT_SEARCHES_KEY) || '[]');
-  saved = [key, ...saved.filter(item => item !== key)].slice(0, 5);
-  localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(saved));
-  renderRecentSearches();
+/* ── 3. UTILITY FUNCTIONS ─────────────────────────────────────── */
+function escapeHtml(text) {
+  if (!text) return '';
+  return String(text).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c] || c));
 }
-function renderRecentSearches() {
-  const el = document.getElementById('recentSearches');
-  if (!el) return;
-  const saved = JSON.parse(localStorage.getItem(RECENT_SEARCHES_KEY) || '[]');
-  if (!saved.length) {
-    el.innerHTML = `<div style="opacity:.8">Recent searches will appear here after you search.</div>`;
+
+function nowStr() {
+  const now = new Date();
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+  const ist = new Date(utcMs + 5.5 * 3600000);
+  return ist.getHours().toString().padStart(2,'0') + ':' + ist.getMinutes().toString().padStart(2,'0');
+}
+
+function nowIST12() {
+  const now = new Date();
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+  const ist = new Date(utcMs + 5.5 * 3600000);
+  const h = ist.getHours(), m = ist.getMinutes();
+  return `${h%12||12}:${m.toString().padStart(2,'0')} ${h>=12?'PM':'AM'}`;
+}
+
+function fmt(t) {
+  if (!t) return '';
+  const [h,m] = t.split(':');
+  const hour = parseInt(h,10);
+  return `${hour%12||12}:${m} ${hour>=12?'PM':'AM'}`;
+}
+
+function ago(ts) {
+  if (!ts) return '';
+  const m = Math.floor((Date.now() - ts) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+let toastTimer;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ''; }, 3000);
+}
+
+function updateCloudSyncStatus(status, count = 0) {
+  const dot = document.getElementById('cloudDot');
+  const label = document.getElementById('cloudLabel');
+  if (status === 'synced') {
+    dot.className = 'dot online';
+    label.textContent = count > 0 ? `Synced (+${count})` : 'Cloud Synced';
+  } else if (status === 'syncing') {
+    dot.className = 'dot syncing';
+    label.textContent = 'Syncing...';
+  } else if (status === 'offline') {
+    dot.className = 'dot offline';
+    label.textContent = 'Offline';
+  } else {
+    dot.className = 'dot online';
+    label.textContent = 'Local Cache';
+  }
+}
+
+/* ── 4. AUTO-FETCH & AUTO-SEED ENGINE (SERVER SYNC) ────────────── */
+async function autoFetchAndSyncSeed() {
+  if (!window.FB || !window.FB.db) return;
+  if (!navigator.onLine) {
+    updateCloudSyncStatus('offline');
     return;
   }
-  const buttons = saved.map(item => {
-    const [from, to] = item.split(' → ');
-    return `<button class="pill" style="padding:7px 12px" onclick="quickSearch('${from.replace(/'/g, "\\'")}','${to.replace(/'/g, "\\'")}')">${item}</button>`;
-  }).join('');
-  el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px">${buttons}</div>`;
+
+  updateCloudSyncStatus('syncing');
+  try {
+    const { collection, getDocs, setDoc, doc, onSnapshot, query, orderBy } = window.FB;
+    
+    // 1. Listen for live buses from server
+    const busQ = query(collection(window.FB.db, 'bus_timings'), orderBy('time'));
+    onSnapshot(busQ, snap => {
+      const fbData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const fbKeys = new Set(fbData.map(b => (b.from||'').trim() + '→' + (b.to||'').trim() + '@' + (b.time||'').trim()));
+      const missingSeed = SEED.filter(b => !fbKeys.has(b.from.trim() + '→' + b.to.trim() + '@' + b.time.trim()));
+      
+      buses = [...fbData, ...missingSeed].sort((a,b) => (a.time||'').localeCompare(b.time||''));
+      renderAllViews();
+      updateAdminCounts();
+    }, err => {
+      console.warn('Firestore realtime listener fallback to seed:', err);
+    });
+
+    // 2. Query existing server entries to detect missing seed entries
+    const snap = await getDocs(collection(window.FB.db, 'bus_timings'));
+    const existingKeys = new Set();
+    snap.forEach(d => {
+      const data = d.data();
+      if (data.from && data.to && data.time) {
+        existingKeys.add(`${data.from.trim()}→${data.to.trim()}@${data.time.trim()}`);
+      }
+    });
+
+    let uploadedCount = 0;
+    // Auto-seed missing entries to server
+    for (const item of SEED) {
+      const key = `${item.from.trim()}→${item.to.trim()}@${item.time.trim()}`;
+      if (!existingKeys.has(key)) {
+        const docRef = doc(window.FB.db, 'bus_timings', 'seed_' + item.id);
+        await setDoc(docRef, {
+          busNo: item.busNo,
+          type: item.type || 'general',
+          from: item.from,
+          to: item.to,
+          time: item.time,
+          notes: item.notes || '',
+          addedBy: item.addedBy || 'raju',
+          verified: item.verified || [],
+          isSeed: true,
+          ts: Date.now()
+        }, { merge: true });
+        existingKeys.add(key);
+        uploadedCount++;
+      }
+    }
+
+    // 3. Listen for Alerts
+    const alertQ = query(collection(window.FB.db, 'alerts'), orderBy('ts', 'desc'));
+    onSnapshot(alertQ, snap => {
+      const fbAlerts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      alerts = fbAlerts.length ? fbAlerts : [...SEED_ALERTS];
+      renderAlertsFeed();
+      checkGlobalAlertBanner();
+      updateAdminCounts();
+    });
+
+    updateCloudSyncStatus('synced', uploadedCount);
+  } catch (err) {
+    console.warn('Server sync completed with local fallback:', err);
+    updateCloudSyncStatus('local');
+  }
 }
 
-/* ── 4. DARK MODE ─────────────────────────────────────────────── */
-function initDarkMode() {
+async function forceSyncSeedToServer() {
+  toast('Syncing seed data to server...', '');
+  await autoFetchAndSyncSeed();
+  toast('✅ Seed data synced to server!', 'ok');
+}
+
+/* ── 5. INITIALIZATION ────────────────────────────────────────── */
+window.addEventListener('load', () => {
+  initTheme();
+  updateClock();
+  setInterval(updateClock, 30000);
+
+  renderAllViews();
+  renderRouteTimeline('borda-ktc');
+
+  // Network listeners
+  window.addEventListener('online', () => {
+    document.getElementById('offlineBanner').style.display = 'none';
+    autoFetchAndSyncSeed();
+  });
+  window.addEventListener('offline', () => {
+    document.getElementById('offlineBanner').style.display = 'block';
+    updateCloudSyncStatus('offline');
+  });
+  if (!navigator.onLine) document.getElementById('offlineBanner').style.display = 'block';
+
+  // PWA Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPWA = e;
+  });
+
+  // Setup Search Input auto-listeners
+  const fInp = document.getElementById('searchFrom');
+  const tInp = document.getElementById('searchTo');
+  const doLiveFilter = () => {
+    const f = fInp.value.trim();
+    const t = tInp.value.trim();
+    if (f || t) executeSearch(f, t);
+    else document.getElementById('searchResultArea').style.display = 'none';
+  };
+  fInp.addEventListener('input', doLiveFilter);
+  tInp.addEventListener('input', doLiveFilter);
+
+  // Check Firebase
+  if (window.FB && window.FB.ready) setupAuthListener();
+  else window.addEventListener('firebase-ready', setupAuthListener);
+
+  setTimeout(autoFetchAndSyncSeed, 500);
+});
+
+function updateClock() {
+  const now = new Date();
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+  const ist = new Date(utcMs + 5.5 * 3600000);
+  const dateStr = ist.toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short' });
+  document.getElementById('dateChip').textContent = `📅 ${dateStr} · ${nowIST12()} IST`;
+  renderNextBusSpotlight();
+  renderUpcomingCarousel();
+}
+
+/* ── 6. THEME SWITCHER ────────────────────────────────────────── */
+function initTheme() {
   const saved = localStorage.getItem('campusbus_theme');
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   if (saved === 'dark' || (!saved && prefersDark)) {
@@ -1027,234 +2048,616 @@ function toggleTheme() {
   document.getElementById('themeToggle').textContent = isDark ? '☀️' : '🌙';
 }
 
-/* ── 6. INIT ──────────────────────────────────────────────────── */
-window.addEventListener('load', () => {
-  function updateClock() {
-    const now = new Date();
-    const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
-    const ist = new Date(utcMs + 5.5 * 3600000);
-    const date = ist.toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short' });
-    document.getElementById('dateChip').textContent = '🇮🇳 ' + date + '  ·  ' + nowIST12() + ' IST';
-  }
-  initDarkMode();
-  updateClock();
-  setInterval(updateClock, 60000);
-
-  buildPopularRoutes();
-  renderRecentSearches();
-  renderNextBus();
-  renderNext3();
-  renderBuses('homeBuses', homeRouteFilter);
-  renderBuses('timingsBuses', timingsRouteFilter);
-  renderAlerts();
-  renderRouteViz('borda-ktc');
-  loadPopularToday();
-
-  setInterval(() => {
-    renderNextBus();
-    renderNext3();
-    renderBuses('homeBuses', homeRouteFilter);
-    checkNextBusNotif();
-  }, 60000);
-
-  updateNotifUI();
-
-  window.addEventListener('online',  () => { document.getElementById('offlineBanner').style.display='none'; });
-  window.addEventListener('offline', () => { document.getElementById('offlineBanner').style.display='block'; });
-  if (!navigator.onLine) document.getElementById('offlineBanner').style.display = 'block';
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  }
-
-  window.addEventListener('beforeinstallprompt', e => {
-    e.preventDefault();
-    deferredInstall = e;
-    document.getElementById('installBanner').classList.add('show');
-    document.getElementById('installRow').style.display = 'flex';
-    document.getElementById('installBtn').onclick = triggerInstall;
-  });
-
-  setTimeout(setupFirebase, 600);
-});
-
-function setupFirebase() {
-  if (!window.FB) return;
-  const { auth, db, onAuthStateChanged, collection, query, orderBy, onSnapshot } = window.FB;
-
-  onAuthStateChanged(auth, u => { user = u; updateUserUI(); loadFavorites(); });
-
-  const busQ = window.FB.query(collection(db, 'bus_timings'), orderBy('time'));
-  onSnapshot(busQ, snap => {
-    const fbData = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-    const fbKeys = new Set(fbData.map(b => b.from+'→'+b.to+'@'+b.time));
-    const seedOnly = SEED.filter(b => !fbKeys.has(b.from+'→'+b.to+'@'+b.time));
-    buses = [...fbData, ...seedOnly];
-    renderNextBus(); renderNext3();
-    renderBuses('homeBuses', homeRouteFilter);
-    renderBuses('timingsBuses', timingsRouteFilter);
-    if (user) updateUserUI();
-  });
-
-  const alertQ = window.FB.query(collection(db, 'alerts'), orderBy('ts', 'desc'));
-  onSnapshot(alertQ, snap => {
-    const fbAlerts = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-    if (fbAlerts.length && alerts.length && fbAlerts[0].id !== alerts[0].id) {
-      notifyNewAlert(fbAlerts[0].message);
-    }
-    alerts = fbAlerts.length ? fbAlerts : [...SEED_ALERTS];
-    renderAlerts();
-  });
+/* ── 7. NAVIGATION ────────────────────────────────────────────── */
+function goPage(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  
+  const targetPage = document.getElementById('page-' + pageId);
+  const targetNav = document.getElementById('nav-' + pageId);
+  if (targetPage) targetPage.classList.add('active');
+  if (targetNav) targetNav.classList.add('active');
+  
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-/* ── 7. AUTH ──────────────────────────────────────────────────── */
-function updateUserUI() {
-  const dot = document.getElementById('statusDot');
-  const label = document.getElementById('chipLabel');
-  if (user) {
-    const name = user.displayName || user.email.split('@')[0];
-    dot.classList.add('on');
-    label.textContent = name;
-    document.getElementById('profileAvatar').textContent = name[0].toUpperCase();
-    document.getElementById('profileName').textContent = user.displayName || name;
-    document.getElementById('profileEmail').textContent = user.email;
-    document.getElementById('loginRow').style.display = 'none';
-    document.getElementById('logoutRow').style.display = 'flex';
-    document.getElementById('addFormWrap').style.display = 'block';
-    document.getElementById('addLoginWall').style.display = 'none';
-    const myAdded = buses.filter(b => b.addedBy === user.email).length;
-    const myVerified = buses.filter(b => b.verified && b.verified.includes(user.email)).length;
-    document.getElementById('myCount').textContent = myAdded;
-    document.getElementById('myVerify').textContent = myVerified;
-    if (user.email === ADMIN_EMAIL) {
-      document.getElementById('adminSection').classList.add('visible');
-      loadAdminStats();
+/* ── 8. RENDER HOME & TIMINGS VIEWS ───────────────────────────── */
+function renderAllViews() {
+  renderNextBusSpotlight();
+  renderUpcomingCarousel();
+  renderBusCardsList('homeBusList', homeFilterKey);
+  renderTimingsView();
+  renderAlertsFeed();
+  checkGlobalAlertBanner();
+  renderSavedFavs();
+  renderLeaderboard();
+}
+
+function renderNextBusSpotlight() {
+  const now = nowStr();
+  const upcoming = buses.filter(b => b.time >= now).sort((a,b) => a.time.localeCompare(b.time));
+  const container = document.getElementById('nextBusSpotlight');
+  if (!container) return;
+  
+  if (!upcoming.length) {
+    container.innerHTML = `
+      <div class="next-bus-card" style="background:linear-gradient(135deg,#334155,#1E293B)">
+        <div class="nb-badge-row">
+          <span class="nb-badge">🌙 End of Service</span>
+        </div>
+        <div class="nb-time">No More Buses Today</div>
+        <div class="nb-route">First morning bus departs at 07:00 AM</div>
+      </div>`;
+    return;
+  }
+
+  const next = upcoming[0];
+  const [nh,nm] = now.split(':').map(Number);
+  const [th,tm] = next.time.split(':').map(Number);
+  const diffMins = (th*60 + tm) - (nh*60 + nm);
+  const countdownText = diffMins === 0 ? 'Departing Now' : `In ${diffMins} min${diffMins > 1 ? 's' : ''}`;
+
+  container.innerHTML = `
+    <div class="next-bus-card" onclick="setQuickSearch('${escapeHtml(next.from)}','${escapeHtml(next.to)}')">
+      <div class="nb-badge-row">
+        <span class="nb-badge">⚡ Next Departure</span>
+        <span class="nb-countdown">${countdownText}</span>
+      </div>
+      <div class="nb-time">${fmt(next.time)}</div>
+      <div class="nb-route">${escapeHtml(next.from)} <span style="opacity:0.8">→</span> ${escapeHtml(next.to)}</div>
+      <div class="nb-tags">
+        <span class="nb-tag">🚌 #${escapeHtml(next.busNo)}</span>
+        <span class="nb-tag" style="text-transform:uppercase">${escapeHtml(next.type||'general')}</span>
+        ${(next.verified||[]).length >= 3 ? `<span class="nb-tag">✔ Verified</span>` : ''}
+        ${next.notes ? `<span class="nb-tag">📝 ${escapeHtml(next.notes)}</span>` : ''}
+      </div>
+    </div>`;
+}
+
+function renderUpcomingCarousel() {
+  const now = nowStr();
+  const next3 = buses.filter(b => b.time >= now).sort((a,b) => a.time.localeCompare(b.time)).slice(1, 6);
+  const scroll = document.getElementById('upcomingScroll');
+  if (!scroll) return;
+  
+  if (!next3.length) {
+    scroll.innerHTML = `<div style="font-size:12px;color:var(--text-muted);padding:4px 0">No further departures scheduled today.</div>`;
+    return;
+  }
+
+  scroll.innerHTML = next3.map(b => `
+    <div class="upcoming-item" onclick="setQuickSearch('${escapeHtml(b.from)}','${escapeHtml(b.to)}')">
+      <div class="u-time">${fmt(b.time)}</div>
+      <div class="u-route">${escapeHtml(b.from.split(' ')[0])} → ${escapeHtml(b.to.split(' ')[0])}</div>
+      <div class="u-bus">#${escapeHtml(b.busNo)}</div>
+    </div>`).join('');
+}
+
+function renderBusCardsList(containerId, filter) {
+  const now = nowStr();
+  let list = [...buses].sort((a,b) => a.time.localeCompare(b.time));
+  
+  if (filter && filter !== 'all') {
+    const [f,t] = filter.split('→');
+    list = list.filter(b => 
+      b.from.toLowerCase().includes(f.toLowerCase().trim()) && 
+      b.to.toLowerCase().includes(t.toLowerCase().trim())
+    );
+  }
+
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (!list.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🚍</div>
+        <div class="empty-text">No bus timings found for this route.<br>
+          <a href="javascript:void(0)" onclick="goPage('add')" style="color:var(--primary);font-weight:700">➕ Add this timing</a>
+        </div>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = list.map(b => renderSingleBusCardHTML(b, b.time < now)).join('');
+}
+
+function renderSingleBusCardHTML(b, isPassed) {
+  const typeLabels = { general:'General', ktc:'Kadamba KTC', private:'Private', express:'Express' };
+  const typeName = typeLabels[b.type] || 'General';
+  const isFav = favorites.some(f => f.from === b.from && f.to === b.to);
+  const verifyCount = (b.verified || []).length;
+  const isVerified = verifyCount >= 3;
+  const crowdVal = crowdCache[b.id] || '';
+  const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+  const isOwner = currentUser && b.addedBy === currentUser.email;
+
+  return `
+    <div class="bus-card ${isPassed ? 'passed' : ''}" id="card_${b.id}">
+      <div class="card-main-row">
+        <div class="card-time-col">
+          <div class="card-time">${fmt(b.time)}</div>
+          <div class="card-mins-tag">${isPassed ? 'Passed' : 'Today'}</div>
+        </div>
+        <div class="card-route-col">
+          <div class="card-route-title">
+            <span>${escapeHtml(b.from)}</span>
+            <span class="route-arrow">→</span>
+            <span>${escapeHtml(b.to)}</span>
+          </div>
+          <div class="card-meta-row">
+            <span class="bus-pill">#${escapeHtml(b.busNo)}</span>
+            <span class="type-pill type-${b.type || 'general'}">${typeName}</span>
+            ${isVerified ? `<span class="action-chip verified-badge">✔ ${verifyCount} Verified</span>` : ''}
+          </div>
+        </div>
+      </div>
+
+      ${b.notes ? `<div class="card-notes">📝 ${escapeHtml(b.notes)}</div>` : ''}
+
+      <!-- Clean Actions Toolbar -->
+      <div class="card-toolbar">
+        <div class="crowd-selector" title="Report Seat Capacity">
+          <button class="crowd-chip ${crowdVal==='empty'?'selected-empty':''}" onclick="setCrowdCapacity('${b.id}','empty')">🟢 Seat</button>
+          <button class="crowd-chip ${crowdVal==='medium'?'selected-medium':''}" onclick="setCrowdCapacity('${b.id}','medium')">🟡 Med</button>
+          <button class="crowd-chip ${crowdVal==='full'?'selected-full':''}" onclick="setCrowdCapacity('${b.id}','full')">🔴 Full</button>
+        </div>
+
+        <div class="action-buttons-group">
+          <button class="action-chip ${isFav ? 'fav-active' : ''}" onclick="toggleFavRoute('${escapeHtml(b.from)}','${escapeHtml(b.to)}')" title="Save Route">
+            ${isFav ? '⭐ Saved' : '☆ Save'}
+          </button>
+          <button class="action-chip" onclick="verifyBusTiming('${b.id}')" title="Verify Timing">✔</button>
+          <button class="action-chip" onclick="shareBusDetails('${escapeHtml(b.from)}','${escapeHtml(b.to)}','${fmt(b.time)}','${escapeHtml(b.busNo)}')" title="Share">📤</button>
+          <button class="action-chip" onclick="toggleCardDetails('${b.id}')" title="Notes & Updates">💬</button>
+          ${(isAdmin || isOwner) ? `<button class="action-chip" onclick="openEditModal('${b.id}')" title="Edit">✏️</button>` : ''}
+        </div>
+      </div>
+
+      <!-- Collapsible Live Comments & Updates -->
+      <div class="card-details-drawer" id="drawer_${b.id}">
+        <div id="commentList_${b.id}" style="font-size:12px;color:var(--text-muted)">
+          Loading live student notes...
+        </div>
+        <div class="comment-input-row">
+          <input type="text" id="inputComment_${b.id}" placeholder="Write live bus update..." maxlength="80">
+          <button class="btn btn-sm" onclick="postCardComment('${b.id}')">Post</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function toggleCardDetails(busId) {
+  const drawer = document.getElementById('drawer_' + busId);
+  drawer.classList.toggle('open');
+  if (drawer.classList.contains('open')) {
+    loadBusComments(busId);
+  }
+}
+
+async function loadBusComments(busId) {
+  const listEl = document.getElementById('commentList_' + busId);
+  if (!window.FB || !window.FB.db) {
+    listEl.innerHTML = '<div style="padding:4px 0">No live updates yet.</div>';
+    return;
+  }
+  try {
+    const { collection, query, where, getDocs, orderBy } = window.FB;
+    const q = query(collection(window.FB.db, 'comments'), where('busId', '==', busId), orderBy('ts', 'desc'));
+    const snap = await getDocs(q);
+    if (snap.empty) {
+      listEl.innerHTML = '<div style="padding:4px 0">No live updates yet. Post the first update above!</div>';
+      return;
+    }
+    listEl.innerHTML = snap.docs.map(d => {
+      const c = d.data();
+      return `<div style="padding:3px 0"><strong>${escapeHtml(c.name||'Student')}:</strong> ${escapeHtml(c.message)} <span style="opacity:0.6;font-size:10.5px">· ${ago(c.ts)}</span></div>`;
+    }).join('');
+  } catch(e) {
+    listEl.innerHTML = '<div style="padding:4px 0">Could not load comments.</div>';
+  }
+}
+
+async function postCardComment(busId) {
+  const inp = document.getElementById('inputComment_' + busId);
+  const msg = inp.value.trim();
+  if (!msg) return;
+  const name = currentUser ? (currentUser.displayName || currentUser.email.split('@')[0]) : 'Student';
+  
+  if (window.FB && window.FB.db) {
+    try {
+      await window.FB.addDoc(window.FB.collection(window.FB.db, 'comments'), {
+        busId, message: msg, name, ts: Date.now()
+      });
+      inp.value = '';
+      loadBusComments(busId);
+      toast('💬 Update posted!', 'ok');
+      return;
+    } catch(e) {}
+  }
+  toast('💬 Update saved locally!', 'ok');
+  inp.value = '';
+}
+
+/* ── 9. SEARCH & QUICK CHIPS ──────────────────────────────────── */
+function swapSearchStops() {
+  const from = document.getElementById('searchFrom');
+  const to = document.getElementById('searchTo');
+  const temp = from.value;
+  from.value = to.value;
+  to.value = temp;
+  executeSearch(from.value.trim(), to.value.trim());
+}
+
+function setQuickSearch(from, to) {
+  document.getElementById('searchFrom').value = from;
+  document.getElementById('searchTo').value = to;
+  executeSearch(from, to);
+}
+
+function executeSearch(from, to) {
+  const area = document.getElementById('searchResultArea');
+  if (!from && !to) {
+    area.style.display = 'none';
+    return;
+  }
+  
+  area.style.display = 'block';
+  const now = nowStr();
+  const matches = buses.filter(b => {
+    const matchFrom = from ? b.from.toLowerCase().includes(from.toLowerCase()) : true;
+    const matchTo = to ? b.to.toLowerCase().includes(to.toLowerCase()) : true;
+    return matchFrom && matchTo;
+  }).sort((a,b) => a.time.localeCompare(b.time));
+
+  if (!matches.length) {
+    area.innerHTML = `
+      <div style="background:var(--surface-hover);padding:12px;border-radius:var(--radius-sm);text-align:center;font-size:12.5px;color:var(--text-muted)">
+        No matching buses found for <strong>${escapeHtml(from)} → ${escapeHtml(to)}</strong>.<br>
+        <button class="btn btn-sm" style="margin-top:8px" onclick="goPage('add')">➕ Add This Route</button>
+      </div>`;
+    return;
+  }
+
+  let html = `<div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:6px">Found ${matches.length} Bus Timing${matches.length>1?'s':''}:</div>`;
+  html += matches.slice(0, 4).map(b => renderSingleBusCardHTML(b, b.time < now)).join('');
+  area.innerHTML = html;
+}
+
+function setHomeFilter(key, el) {
+  homeFilterKey = key;
+  document.querySelectorAll('#homeFilterBar .pill').forEach(p => p.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderBusCardsList('homeBusList', key);
+}
+
+function setTimingsFilter(key, el) {
+  timingsFilterKey = key;
+  document.querySelectorAll('#timingsFilterBar .pill').forEach(p => p.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderTimingsView();
+}
+
+function setTimingsView(view) {
+  currentTimingsView = view;
+  const cardsBtn = document.getElementById('viewBtnCards');
+  const tableBtn = document.getElementById('viewBtnTable');
+  const cardsWrap = document.getElementById('timingsCardsContainer');
+  const tableWrap = document.getElementById('timingsTableContainer');
+
+  if (view === 'table') {
+    cardsBtn.className = 'btn btn-sm btn-secondary';
+    tableBtn.className = 'btn btn-sm';
+    cardsWrap.style.display = 'none';
+    tableWrap.style.display = 'block';
+  } else {
+    cardsBtn.className = 'btn btn-sm';
+    tableBtn.className = 'btn btn-sm btn-secondary';
+    cardsWrap.style.display = 'flex';
+    tableWrap.style.display = 'none';
+  }
+  renderTimingsView();
+}
+
+function renderTimingsView() {
+  if (currentTimingsView === 'cards') {
+    renderBusCardsList('timingsCardsContainer', timingsFilterKey);
+  } else {
+    let list = [...buses].sort((a,b) => a.time.localeCompare(b.time));
+    if (timingsFilterKey !== 'all') {
+      const [f,t] = timingsFilterKey.split('→');
+      list = list.filter(b => b.from.toLowerCase().includes(f.toLowerCase().trim()) && b.to.toLowerCase().includes(t.toLowerCase().trim()));
+    }
+    const tbody = document.getElementById('timingsTableBody');
+    tbody.innerHTML = list.map(b => `
+      <tr>
+        <td style="font-weight:800;color:var(--primary)">${fmt(b.time)}</td>
+        <td><strong>${escapeHtml(b.from)}</strong> → ${escapeHtml(b.to)}</td>
+        <td><span class="bus-pill">#${escapeHtml(b.busNo)}</span></td>
+        <td><span class="type-pill type-${b.type||'general'}">${escapeHtml(b.type||'general')}</span></td>
+        <td>${(b.verified||[]).length >= 3 ? '✔ ' + b.verified.length : (b.verified||[]).length}</td>
+      </tr>`).join('');
+  }
+}
+
+/* ── 10. JOURNEY PLANNER & ROUTE TIMELINE ─────────────────────── */
+function planJourney() {
+  const from = document.getElementById('jFrom').value;
+  const to = document.getElementById('jTo').value;
+  const result = document.getElementById('journeyPlanResult');
+  
+  if (from === to) {
+    result.innerHTML = `<div style="color:var(--red);font-size:13px;font-weight:700">Origin and destination are the same.</div>`;
+    return;
+  }
+
+  const now = nowStr();
+  const direct = buses.filter(b => b.from.toLowerCase().includes(from.toLowerCase()) && b.to.toLowerCase().includes(to.toLowerCase())).sort((a,b)=>a.time.localeCompare(b.time));
+  
+  let transferOptions = [];
+  const hubs = ['Kamat Bus Stand', 'Kamat', 'Margao', 'Margao KTC Bus Stand'];
+  
+  hubs.forEach(hub => {
+    if (hub.toLowerCase().includes(from.toLowerCase()) || hub.toLowerCase().includes(to.toLowerCase())) return;
+    const leg1 = buses.filter(b => b.from.toLowerCase().includes(from.toLowerCase()) && b.to.toLowerCase().includes(hub.toLowerCase()) && b.time >= now);
+    const leg2 = buses.filter(b => b.from.toLowerCase().includes(hub.toLowerCase()) && b.to.toLowerCase().includes(to.toLowerCase()));
+    
+    leg1.forEach(l1 => {
+      const l2 = leg2.find(b => b.time >= l1.time);
+      if (l2) transferOptions.push({ l1, l2, hub });
+    });
+  });
+
+  let html = `<div style="background:var(--surface-hover);padding:14px;border-radius:var(--radius-md);margin-top:10px">`;
+  
+  if (direct.length) {
+    const upcomingDirect = direct.filter(b => b.time >= now);
+    const best = upcomingDirect.length ? upcomingDirect[0] : direct[0];
+    html += `
+      <div style="font-size:13.5px;font-weight:800;color:var(--primary);margin-bottom:6px">🟢 Direct Connection Available</div>
+      <div style="font-size:13px;margin-bottom:4px">Take Bus #${escapeHtml(best.busNo)} at <strong>${fmt(best.time)}</strong> directly from ${escapeHtml(best.from)} to ${escapeHtml(best.to)}.</div>
+      ${best.notes ? `<div style="font-size:12px;color:var(--text-muted)">Note: ${escapeHtml(best.notes)}</div>` : ''}`;
+  } else if (transferOptions.length) {
+    const bestT = transferOptions[0];
+    html += `
+      <div style="font-size:13.5px;font-weight:800;color:var(--primary);margin-bottom:6px">🔄 1-Transfer Connection via ${escapeHtml(bestT.hub)}</div>
+      <div style="font-size:12.5px;line-height:1.6">
+        1. Board Bus #${escapeHtml(bestT.l1.busNo)} at <strong>${fmt(bestT.l1.time)}</strong> (${escapeHtml(bestT.l1.from)} → ${escapeHtml(bestT.hub)})<br>
+        2. Transfer at ${escapeHtml(bestT.hub)}<br>
+        3. Board Bus #${escapeHtml(bestT.l2.busNo)} at <strong>${fmt(bestT.l2.time)}</strong> to ${escapeHtml(bestT.l2.to)}
+      </div>`;
+  } else {
+    html += `<div style="font-size:13px;color:var(--text-muted)">No scheduled buses found for this combination today. Try searching individual stops.</div>`;
+  }
+  html += `</div>`;
+  result.innerHTML = html;
+}
+
+function renderRouteTimeline(key) {
+  const stops = ROUTE_VIZ[key] || [];
+  const container = document.getElementById('timelineContainer');
+  if (!stops.length || !container) return;
+
+  container.innerHTML = stops.map((s, i) => {
+    const isLast = i === stops.length - 1;
+    return `
+      <div class="timeline-step">
+        <div class="step-marker-col">
+          <div class="step-node ${isLast ? 'end' : ''}"></div>
+          ${!isLast ? '<div class="step-stem"></div>' : ''}
+        </div>
+        <div class="step-content">
+          <div class="step-title">${escapeHtml(s.name)}</div>
+          <div class="step-time-badge">${escapeHtml(s.time)} · <a href="javascript:void(0)" onclick="setQuickSearch('${escapeHtml(s.name.split('/')[0].trim())}','')" style="color:var(--primary);font-weight:700">Departures</a></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* ── 11. COMMUNITY ALERTS & LEADERBOARD ───────────────────────── */
+function checkGlobalAlertBanner() {
+  const banner = document.getElementById('globalAlertBanner');
+  const msgEl = document.getElementById('globalAlertMsg');
+  if (!banner || !msgEl) return;
+  const activeAlerts = alerts.filter(a => a.type === 'warning' || a.type === 'danger');
+  
+  if (activeAlerts.length) {
+    const top = activeAlerts[0];
+    msgEl.textContent = `${top.type==='danger'?'❌':'⚠️'} ${top.message}`;
+    banner.className = 'global-alert-banner' + (top.type==='danger' ? ' danger' : '');
+    banner.style.display = 'flex';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function renderAlertsFeed() {
+  const container = document.getElementById('communityAlertsList');
+  if (!container) return;
+  
+  if (!alerts.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <div class="empty-text">No active alerts. All buses running normally!</div>
+      </div>`;
+    return;
+  }
+
+  const icons = { warning:'⚠️', danger:'❌', success:'✅', info:'ℹ️' };
+  container.innerHTML = alerts.map(a => `
+    <div class="bus-card" style="border-left:4px solid ${a.type==='danger'?'var(--red)':a.type==='success'?'var(--primary)':'var(--amber)'}">
+      <div style="font-size:13.5px;font-weight:700">${icons[a.type]||'📌'} ${escapeHtml(a.message)}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">
+        Reported by ${escapeHtml((a.addedBy||'student').split('@')[0])} · ${ago(a.ts)}
+      </div>
+    </div>`).join('');
+}
+
+function renderLeaderboard() {
+  const box = document.getElementById('leaderboardBox');
+  if (!box) return;
+
+  const counts = {};
+  buses.forEach(b => {
+    const user = b.addedBy || 'community';
+    counts[user] = (counts[user] || 0) + 1;
+  });
+
+  const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 5);
+  const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+
+  box.innerHTML = sorted.map(([usr, count], i) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:16px">${medals[i]}</span>
+        <span style="font-size:13px;font-weight:700">${escapeHtml(usr.split('@')[0])}</span>
+      </div>
+      <span style="font-size:12px;color:var(--primary);font-weight:800">${count} timings</span>
+    </div>`).join('');
+}
+
+/* ── 12. DATA OPERATIONS (ADD, VERIFY, EDIT, FAV) ─────────────── */
+async function submitNewTiming() {
+  const busNo = document.getElementById('addBusNo').value.trim();
+  const type  = document.getElementById('addBusType').value;
+  const from  = document.getElementById('addFrom').value.trim();
+  const to    = document.getElementById('addTo').value.trim();
+  const time  = document.getElementById('addTime').value;
+  const notes = document.getElementById('addNotes').value.trim();
+
+  if (!busNo || !from || !to || !time) {
+    toast('Please fill Bus #, From, To and Time', 'err');
+    return;
+  }
+  if (from.toLowerCase() === to.toLowerCase()) {
+    toast('From and To cannot be the same', 'err');
+    return;
+  }
+
+  const addedBy = currentUser ? currentUser.email : 'student';
+  const newBus = { busNo, type, from, to, time, notes, addedBy, verified: [], ts: Date.now() };
+
+  if (window.FB && window.FB.db && navigator.onLine) {
+    try {
+      await window.FB.addDoc(window.FB.collection(window.FB.db, 'bus_timings'), newBus);
+      toast('✅ Bus timing saved to cloud!', 'ok');
+    } catch(e) {
+      newBus.id = 'local_' + Date.now();
+      buses.push(newBus);
+      toast('✅ Saved locally (offline)', 'ok');
     }
   } else {
-    dot.classList.remove('on');
-    label.textContent = 'Login';
-    document.getElementById('profileAvatar').textContent = '?';
-    document.getElementById('profileName').textContent = 'Guest';
-    document.getElementById('profileEmail').textContent = 'Not logged in';
-    document.getElementById('loginRow').style.display = 'flex';
-    document.getElementById('logoutRow').style.display = 'none';
-    document.getElementById('addFormWrap').style.display = 'none';
-    document.getElementById('addLoginWall').style.display = 'block';
-    document.getElementById('myCount').textContent = 0;
-    document.getElementById('myVerify').textContent = 0;
-    document.getElementById('myFavCount').textContent = 0;
-    document.getElementById('favSection').style.display = 'none';
-    document.getElementById('adminSection').classList.remove('visible');
-  }
-}
-function handleLoginChip() { goPage(user ? 'profile' : 'auth'); }
-let authMode = 'login';
-function toggleAuth() {
-  authMode = authMode === 'login' ? 'register' : 'login';
-  document.getElementById('loginForm').style.display = authMode === 'login' ? 'block' : 'none';
-  document.getElementById('registerForm').style.display = authMode === 'register' ? 'block' : 'none';
-  document.getElementById('authTitle').textContent = authMode === 'login' ? 'Login to your account' : 'Create new account';
-}
-async function doEmailLogin() {
-  const email = document.getElementById('lEmail').value.trim();
-  const pass = document.getElementById('lPass').value;
-  if (!email || !pass) { toast('Fill in all fields', 'err'); return; }
-  try {
-    await window.FB.signInWithEmailAndPassword(window.FB.auth, email, pass);
-    toast('✅ Welcome back!', 'ok'); goPage('home');
-  } catch(e) { toast(friendlyError(e), 'err'); }
-}
-async function doRegister() {
-  const email = document.getElementById('rEmail').value.trim();
-  const pass = document.getElementById('rPass').value;
-  if (!email || !pass) { toast('Fill in all fields', 'err'); return; }
-  try {
-    await window.FB.createUserWithEmailAndPassword(window.FB.auth, email, pass);
-    toast('🎓 Account created!', 'ok'); goPage('home');
-  } catch(e) { toast(friendlyError(e), 'err'); }
-}
-async function doGoogleLogin() {
-  try {
-    const provider = new window.FB.GoogleAuthProvider();
-    await window.FB.signInWithPopup(window.FB.auth, provider);
-    toast('✅ Logged in with Google!', 'ok'); goPage('home');
-  } catch(e) { toast('Google login failed — allow popups', 'err'); }
-}
-async function doLogout() {
-  await window.FB.signOut(window.FB.auth);
-  user = null; updateUserUI(); toast('Logged out', ''); goPage('home');
-}
-function friendlyError(e) {
-  const m = { 'auth/user-not-found':'No account found','auth/wrong-password':'Wrong password',
-    'auth/email-already-in-use':'Email already registered','auth/weak-password':'Password too short (min 6)',
-    'auth/invalid-email':'Invalid email' };
-  return m[e.code] || e.message.replace('Firebase: ','').replace(/\s*\(.*\)/,'');
-}
-
-/* ── 8. DATA OPS ──────────────────────────────────────────────── */
-async function submitTiming() {
-  if (!user) { toast('Please login first', 'err'); return; }
-  if (!navigator.onLine) { toast('You are offline — cannot submit', 'err'); return; }
-  const busNo = document.getElementById('fBusNo').value.trim();
-  const type = document.getElementById('fBusType').value;
-  const from = document.getElementById('fFrom').value.trim();
-  const to = document.getElementById('fTo').value.trim();
-  const time = document.getElementById('fTime').value;
-  const notes = document.getElementById('fNotes').value.trim();
-  if (!busNo || !from || !to || !time) { toast('Fill Bus No, From, To & Time', 'err'); return; }
-  if (from.toLowerCase() === to.toLowerCase()) { toast('From and To cannot be same', 'err'); return; }
-  const data = { busNo, type, from, to, time, notes, addedBy:user.email, verified:[], ts:Date.now() };
-  try {
-    await window.FB.addDoc(window.FB.collection(window.FB.db, 'bus_timings'), data);
-    toast('✅ Timing added! 🎉', 'ok');
-    ['fBusNo','fFrom','fTo','fNotes'].forEach(id => document.getElementById(id).value='');
-    document.getElementById('fTime').value = '';
-  } catch(e) {
-    data.id = 'local_'+Date.now(); buses.push(data);
-    buses.sort((a,b)=>a.time.localeCompare(b.time));
-    renderNextBus(); renderBuses('homeBuses',homeRouteFilter); renderBuses('timingsBuses',timingsRouteFilter);
+    newBus.id = 'local_' + Date.now();
+    buses.push(newBus);
     toast('✅ Saved locally (offline)', 'ok');
   }
+
+  ['addBusNo', 'addFrom', 'addTo', 'addNotes', 'addTime'].forEach(id => document.getElementById(id).value = '');
+  renderAllViews();
+  goPage('home');
 }
+
 async function submitAlert() {
-  if (!user) { toast('Please login first', 'err'); return; }
-  if (!navigator.onLine) { toast('You are offline', 'err'); return; }
-  const type = document.getElementById('fAlertType').value;
-  const message = document.getElementById('fAlertMsg').value.trim();
-  if (!message) { toast('Please write a message', 'err'); return; }
-  const data = { type, message, addedBy:user.email, ts:Date.now() };
-  try {
-    await window.FB.addDoc(window.FB.collection(window.FB.db, 'alerts'), data);
-    toast('📢 Alert posted!', 'ok');
-    document.getElementById('fAlertMsg').value = '';
-  } catch(e) {
-    data.id='la_'+Date.now(); alerts.unshift(data); renderAlerts();
+  const type = document.getElementById('postAlertType').value;
+  const message = document.getElementById('postAlertMsg').value.trim();
+  if (!message) { toast('Please enter an alert message', 'err'); return; }
+
+  const addedBy = currentUser ? currentUser.email : 'student';
+  const alertObj = { type, message, addedBy, ts: Date.now() };
+
+  if (window.FB && window.FB.db && navigator.onLine) {
+    try {
+      await window.FB.addDoc(window.FB.collection(window.FB.db, 'alerts'), alertObj);
+      toast('📢 Alert broadcasted!', 'ok');
+    } catch(e) {
+      alerts.unshift(alertObj);
+      toast('📢 Posted locally', 'ok');
+    }
+  } else {
+    alerts.unshift(alertObj);
     toast('📢 Posted locally', 'ok');
   }
+
+  document.getElementById('postAlertMsg').value = '';
+  renderAlertsFeed();
+  checkGlobalAlertBanner();
 }
-async function verifyTiming(id) {
-  if (!user) { toast('Login to verify timings', 'err'); return; }
-  try {
-    await window.FB.updateDoc(window.FB.doc(window.FB.db,'bus_timings',id), { verified:window.FB.arrayUnion(user.email) });
-    toast('✅ Verified!', 'ok');
-  } catch(e) {
-    const t = buses.find(x=>x.id===id);
-    if (t && !t.verified.includes(user.email)) { t.verified.push(user.email); renderBuses('homeBuses',homeRouteFilter); renderBuses('timingsBuses',timingsRouteFilter); toast('✅ Verified (offline)','ok'); }
-    else toast('Already verified','');
+
+async function verifyBusTiming(busId) {
+  const bus = buses.find(b => b.id === busId);
+  if (!bus) return;
+  const userIdentifier = currentUser ? currentUser.email : 'local_user';
+
+  if (!bus.verified) bus.verified = [];
+  if (bus.verified.includes(userIdentifier)) {
+    toast('You already verified this bus timing', '');
+    return;
+  }
+
+  bus.verified.push(userIdentifier);
+  if (window.FB && window.FB.db && !busId.startsWith('s') && navigator.onLine) {
+    try {
+      await window.FB.updateDoc(window.FB.doc(window.FB.db, 'bus_timings', busId), {
+        verified: window.FB.arrayUnion(userIdentifier)
+      });
+    } catch(e) {}
+  }
+  toast('✔ Timing verified! Thank you.', 'ok');
+  renderAllViews();
+}
+
+function setCrowdCapacity(busId, level) {
+  crowdCache[busId] = level;
+  localStorage.setItem('campusbus_crowd', JSON.stringify(crowdCache));
+  toast(`Reported: ${level.toUpperCase()}`, 'ok');
+  renderAllViews();
+}
+
+function toggleFavRoute(from, to) {
+  const idx = favorites.findIndex(f => f.from === from && f.to === to);
+  if (idx >= 0) {
+    favorites.splice(idx, 1);
+    toast('Route removed from favorites', '');
+  } else {
+    favorites.push({ from, to });
+    toast('⭐ Saved to favorites!', 'ok');
+  }
+  localStorage.setItem('campusbus_favs', JSON.stringify(favorites));
+  renderAllViews();
+}
+
+function renderSavedFavs() {
+  const box = document.getElementById('savedFavList');
+  if (!box) return;
+  if (!favorites.length) {
+    box.innerHTML = `<div style="font-size:12.5px;color:var(--text-muted)">No saved routes yet. Tap ⭐ on any card to save.</div>`;
+    return;
+  }
+  box.innerHTML = favorites.map(f => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:13px;font-weight:700">${escapeHtml(f.from)} → ${escapeHtml(f.to)}</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-sm" onclick="setQuickSearch('${escapeHtml(f.from)}','${escapeHtml(f.to)}');goPage('home')">Search</button>
+        <button class="btn btn-sm btn-secondary" onclick="toggleFavRoute('${escapeHtml(f.from)}','${escapeHtml(f.to)}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function shareBusDetails(from, to, time, busNo) {
+  const msg = `🚌 CampusBus Route: Bus #${busNo} from ${from} to ${to} at ${time} IST.\nCheck live on https://campusbus.pages.dev`;
+  if (navigator.share) {
+    navigator.share({ title: 'CampusBus Timing', text: msg });
+  } else {
+    navigator.clipboard?.writeText(msg);
+    toast('📋 Route copied to clipboard!', 'ok');
   }
 }
-async function deleteBus(id) {
-  if (!user) { toast('Login required','err'); return; }
-  if (!navigator.onLine) { toast('Cannot delete offline', 'err'); return; }
-  if (!confirm('Delete this bus timing? This cannot be undone.')) return;
-  try { await window.FB.deleteDoc(window.FB.doc(window.FB.db,'bus_timings',id)); toast('🗑️ Bus deleted','ok'); }
-  catch(e) { toast('Error: '+e.message,'err'); }
-}
-function openEditModal(id) {
-  if (!user) { toast('Login required','err'); return; }
-  const b = buses.find(x=>x.id===id);
-  if (!b) { toast('Bus not found','err'); return; }
-  document.getElementById('editDocId').value = id;
+
+function openEditModal(busId) {
+  const b = buses.find(x => x.id === busId);
+  if (!b) return;
+  document.getElementById('editBusId').value = busId;
   document.getElementById('editBusNo').value = b.busNo || '';
   document.getElementById('editBusType').value = b.type || 'general';
   document.getElementById('editFrom').value = b.from || '';
@@ -1263,570 +2666,176 @@ function openEditModal(id) {
   document.getElementById('editNotes').value = b.notes || '';
   document.getElementById('editModal').classList.add('open');
 }
-function closeModal() { document.getElementById('editModal').classList.remove('open'); }
-function closeEditModal(e) { if(e.target.id==='editModal') closeModal(); }
-async function saveEdit() {
-  if (!user) { toast('Login required','err'); return; }
-  if (!navigator.onLine) { toast('Cannot save offline', 'err'); return; }
-  const id = document.getElementById('editDocId').value;
+function closeEditModal() { document.getElementById('editModal').classList.remove('open'); }
+
+async function saveBusEdit() {
+  const id = document.getElementById('editBusId').value;
   const busNo = document.getElementById('editBusNo').value.trim();
   const type = document.getElementById('editBusType').value;
   const from = document.getElementById('editFrom').value.trim();
   const to = document.getElementById('editTo').value.trim();
   const time = document.getElementById('editTime').value;
   const notes = document.getElementById('editNotes').value.trim();
-  if (!busNo||!from||!to||!time) { toast('Fill all required fields','err'); return; }
-  if (from.toLowerCase()===to.toLowerCase()) { toast('From and To cannot be same','err'); return; }
-  try {
-    await window.FB.updateDoc(window.FB.doc(window.FB.db,'bus_timings',id), { busNo,type,from,to,time,notes });
-    closeModal(); toast('✅ Bus updated!','ok');
-  } catch(e) { toast('Error: '+e.message,'err'); }
-}
 
-/* ── 9. CROWD & PRESENCE ──────────────────────────────────────── */
-async function voteCrowd(busId, vote) {
-  if (!user) { toast('Login to vote on crowd','err'); return; }
-  const today = new Date().toISOString().slice(0,10);
-  const docId = busId + '_' + today;
-  const ref = window.FB.doc(window.FB.db, 'crowd_reports', docId);
-  try {
-    const snap = await window.FB.getDoc(ref);
-    if (snap.exists()) {
-      const data = snap.data();
-      const prev = (data.voters||{})[user.uid];
-      let updates = { [`votes.${vote}`]: window.FB.increment(1), [`voters.${user.uid}`]: vote };
-      if (prev && prev !== vote) updates[`votes.${prev}`] = window.FB.increment(-1);
-      await window.FB.updateDoc(ref, updates);
-    } else {
-      await window.FB.setDoc(ref, { busId, date:today, votes:{empty:0,medium:0,full:0,[vote]:1}, voters:{[user.uid]:vote} });
-    }
-    if (!crowdCache[busId]) crowdCache[busId] = { empty:0, medium:0, full:0 };
-    crowdCache[busId].myVote = vote;
-    toast('✅ Crowd vote recorded!','ok');
-    renderBuses('homeBuses', homeRouteFilter);
-    renderBuses('timingsBuses', timingsRouteFilter);
-  } catch(e) { toast('Vote error: '+e.message,'err'); }
-}
-async function markOnBus(busId) {
-  if (!user) { toast('Login to mark presence','err'); return; }
-  const ref = window.FB.doc(window.FB.db, 'bus_presence', busId);
-  try {
-    await window.FB.updateDoc(ref, {
-      [`riders.${user.uid}`]: window.FB.serverTimestamp(),
-      count: window.FB.increment(1)
-    }).catch(async () => {
-      await window.FB.setDoc(ref, { count:1, riders:{[user.uid]:window.FB.serverTimestamp()} });
-    });
-    toast('👋 You are on this bus!','ok');
-  } catch(e) { toast('Error','err'); }
-}
+  if (!busNo || !from || !to || !time) { toast('Please fill all fields', 'err'); return; }
 
-/* ── 10. COMMENTS (lazy) ─────────────────────────────────────── */
-async function loadCommentsForBus(busId) {
-  if (!window.FB) return;
-  try {
-    const q = window.FB.query(window.FB.collection(window.FB.db,'comments'), window.FB.where('busId','==',busId), window.FB.orderBy('ts','desc'));
-    const snap = await window.FB.getDocs(q);
-    commentsCache[busId] = snap.docs.map(d=>({ id:d.id,...d.data() })).slice(0,5);
-  } catch(e) {}
-}
-async function fetchAndShowComments(busId) {
-  const el = document.getElementById('commentsOf_'+busId);
-  el.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
-  await loadCommentsForBus(busId);
-  renderCommentsBlock(busId);
-}
-function renderCommentsBlock(busId) {
-  const el = document.getElementById('commentsOf_'+busId);
-  if (!el) return;
-  const cms = commentsCache[busId] || [];
-  el.innerHTML = cms.map(c => `
-    <div class="comment-item">
-      <span><span class="comment-name">${escapeHtml(c.name||'student')}</span>: ${escapeHtml(c.message)}</span>
-      <span style="display:flex;align-items:center;gap:4px">
-        <span style="font-size:10px;color:var(--text3)">${ago(c.ts)}</span>
-        ${user && user.email===ADMIN_EMAIL ? `<span style="cursor:pointer;color:var(--red);font-size:11px" onclick="deleteComment('${c.id}','${busId}')">✕</span>` : ''}
-      </span>
-    </div>`).join('') || '<div style="font-size:12px;color:var(--text3)">No comments yet</div>';
-}
-async function postComment(busId) {
-  if (!user) { toast('Login to comment','err'); return; }
-  const input = document.getElementById('comment_'+busId);
-  const msg = input.value.trim().slice(0,100);
-  if (!msg) { toast('Write a message','err'); return; }
-  try {
-    await window.FB.addDoc(window.FB.collection(window.FB.db,'comments'), {
-      busId, message:msg, addedBy:user.email, name: user.displayName||user.email.split('@')[0], ts:Date.now()
-    });
-    input.value = '';
-    await fetchAndShowComments(busId);
-    toast('💬 Comment posted!','ok');
-  } catch(e) { toast('Error: '+e.message,'err'); }
-}
-async function deleteComment(commentId, busId) {
-  if (!user || user.email !== ADMIN_EMAIL) { toast('Admin only','err'); return; }
-  try {
-    await window.FB.deleteDoc(window.FB.doc(window.FB.db,'comments',commentId));
-    await loadCommentsForBus(busId);
-    renderCommentsBlock(busId);
-    toast('🗑️ Comment deleted','ok');
-  } catch(e) { toast('Error','err'); }
-}
+  const bus = buses.find(x => x.id === id);
+  if (bus) {
+    bus.busNo = busNo; bus.type = type; bus.from = from; bus.to = to; bus.time = time; bus.notes = notes;
+  }
 
-/* ── 11. FAVORITES ───────────────────────────────────────────── */
-async function loadFavorites() {
-  if (!user || !window.FB) { favorites = []; return; }
-  try {
-    const q = window.FB.query(window.FB.collection(window.FB.db,'favorites'), window.FB.where('userId','==',user.uid));
-    const snap = await window.FB.getDocs(q);
-    favorites = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-    document.getElementById('myFavCount').textContent = favorites.length;
-    renderFavorites();
-  } catch(e) {}
-}
-async function toggleFavorite(from, to) {
-  if (!user) { toast('Login to save routes','err'); return; }
-  const existing = favorites.find(f => f.from===from && f.to===to);
-  try {
-    if (existing) {
-      await window.FB.deleteDoc(window.FB.doc(window.FB.db,'favorites',existing.id));
-      toast('⭐ Route unsaved','');
-    } else {
-      await window.FB.addDoc(window.FB.collection(window.FB.db,'favorites'), { userId:user.uid, from, to, ts:Date.now() });
-      toast('⭐ Route saved!','ok');
-    }
-    await loadFavorites();
-    renderBuses('homeBuses',homeRouteFilter);
-    renderBuses('timingsBuses',timingsRouteFilter);
-  } catch(e) { toast('Error: '+e.message,'err'); }
-}
-function isFavorite(from, to) { return favorites.some(f=>f.from===from && f.to===to); }
-function renderFavorites() {
-  const sec = document.getElementById('favSection');
-  const lst = document.getElementById('favList');
-  if (!favorites.length) { sec.style.display='none'; return; }
-  sec.style.display = 'block';
-  lst.innerHTML = favorites.map(f => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
-      <span style="font-size:14px;font-weight:600">${escapeHtml(f.from)} → ${escapeHtml(f.to)}</span>
-      <div style="display:flex;gap:8px">
-        <button class="btn-sm btn" onclick="quickSearch('${escapeHtml(f.from)}','${escapeHtml(f.to)}')" style="padding:5px 12px;font-size:12px">Search</button>
-        <button class="del-btn" onclick="toggleFavorite('${escapeHtml(f.from)}','${escapeHtml(f.to)}')">✕</button>
-      </div>
-    </div>`).join('');
-}
-
-/* ── 12. ANALYTICS ───────────────────────────────────────────── */
-async function trackSearch(from, to) {
-  if (!window.FB) return;
-  const route = from + ' → ' + to;
-  const today = new Date().toISOString().slice(0,10);
-  const docId = btoa(route + today).replace(/[^a-zA-Z0-9]/g,'').slice(0,20);
-  try {
-    await window.FB.setDoc(window.FB.doc(window.FB.db,'analytics',docId), { route, date:today, count:window.FB.increment(1) }, { merge:true });
-  } catch(e) {}
-}
-async function loadPopularToday() {
-  const el = document.getElementById('popularToday');
-  if (!window.FB) {
-    el.innerHTML = '<div class="empty"><div class="ico">📊</div><p>Analytics loads when online</p></div>';
-    return;
-  }
-  try {
-    const today = new Date().toISOString().slice(0,10);
-    const q = window.FB.query(window.FB.collection(window.FB.db,'analytics'), window.FB.where('date','==',today), window.FB.orderBy('count','desc'));
-    const snap = await window.FB.getDocs(q);
-    const data = snap.docs.map(d=>d.data()).slice(0,5);
-    if (!data.length) { el.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:10px 0">No searches yet today — be the first!</div>'; return; }
-    const max = data[0].count;
-    el.innerHTML = data.map((d,i) => `
-      <div class="pop-item">
-        <div class="pop-rank">#${i+1}</div>
-        <div style="flex:1">
-          <div class="pop-route">${escapeHtml(d.route)}</div>
-          <div class="pop-bar"><div class="pop-fill" style="width:${Math.round((d.count/max)*100)}%"></div></div>
-        </div>
-        <div class="pop-count">${d.count} searches</div>
-      </div>`).join('');
-  } catch(e) { el.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:10px 0">Analytics not available yet</div>'; }
-}
-
-/* ── 13. SEARCH (with debounce) ──────────────────────────────── */
-function doSearch() {
-  const from = document.getElementById('searchFrom').value.trim();
-  const to = document.getElementById('searchTo').value.trim();
-  if (!from || !to) { toast('Enter From and To stops','err'); return; }
-  saveRecentSearch(from, to);
-  trackSearch(from, to);
-  loadPopularToday();
-  const now = nowStr();
-  const matches = buses
-    .filter(b => b.from.toLowerCase().includes(from.toLowerCase()) && b.to.toLowerCase().includes(to.toLowerCase()))
-    .sort((a,b) => a.time.localeCompare(b.time));
-  const upcoming = matches.filter(b => b.time >= now);
-  let html = `<div class="result-box"><div class="result-head">${escapeHtml(from)} → ${escapeHtml(to)} · ${matches.length} bus${matches.length!==1?'es':''}</div>`;
-  if (!matches.length) {
-    html += `<div class="empty"><div class="ico">🔍</div><p>No buses found.<br><a href="#" onclick="goPage('add');document.getElementById('fFrom').value='${escapeHtml(from)}';document.getElementById('fTo').value='${escapeHtml(to)}'">➕ Add this route</a></p></div>`;
-  } else {
-    matches.forEach(b => {
-      const past = b.time < now;
-      html += `<div class="bus-card" style="margin:10px;${past?'opacity:.5':''}">
-        <div class="bc-top"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><div class="bus-no">#${escapeHtml(b.busNo)}</div><span class="type-badge type-${b.type||'general'}">${{ktc:'KTC',private:'Private',express:'Express',general:'General'}[b.type]||'General'}</span></div><div class="bus-time" style="${past?'color:var(--text3)':''}">${fmt(b.time)}</div></div>
-        <div class="bus-route-line"><span class="stop">${escapeHtml(b.from)}</span><span class="arrow">→</span><span class="stop">${escapeHtml(b.to)}</span></div>
-        ${b.notes?`<div style="font-size:12px;color:var(--green-dark);margin-bottom:6px">📝 ${escapeHtml(b.notes)}</div>`:''}
-        ${b.verified&&b.verified.length>=3?`<span class="badge" style="font-size:11px">✔ ${b.verified.length} verified</span>`:''}
-      </div>`;
-    });
-    if (upcoming.length) {
-      html += `<div style="background:var(--green-light);padding:10px 14px;font-size:13px;color:var(--green-dark);font-weight:600">⭐ Next: ${fmt(upcoming[0].time)} — Bus #${escapeHtml(upcoming[0].busNo)}</div>`;
-    }
-  }
-  html += '</div>';
-  document.getElementById('searchResult').innerHTML = html;
-}
-document.addEventListener('DOMContentLoaded', () => {
-  const fromInp = document.getElementById('searchFrom');
-  const toInp = document.getElementById('searchTo');
-  const debounceSearch = () => {
-    clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(() => {
-      if (fromInp.value.trim() && toInp.value.trim()) doSearch();
-    }, 300);
-  };
-  fromInp.addEventListener('input', debounceSearch);
-  toInp.addEventListener('input', debounceSearch);
-});
-
-function runSuggester() {
-  const from = document.getElementById('suggestFrom').value;
-  const to = document.getElementById('suggestTo').value;
-  if (!from || !to) { toast('Select both stops','err'); return; }
-  if (from === to) { toast('From and To cannot be same','err'); return; }
-  const now = nowStr();
-  const matches = buses.filter(b => b.from.toLowerCase().includes(from.toLowerCase()) && b.to.toLowerCase().includes(to.toLowerCase())).sort((a,b)=>a.time.localeCompare(b.time));
-  const upcoming = matches.filter(b => b.time >= now);
-  const el = document.getElementById('suggestResult');
-  if (!upcoming.length && !matches.length) {
-    el.innerHTML = `<div class="suggest-result">😔 No buses found for this route.<br>Try adding one!</div>`;
-    return;
-  }
-  if (!upcoming.length) {
-    const first = matches[0];
-    el.innerHTML = `<div class="suggest-result">🌙 No more buses today.<br>Tomorrow's first bus: <strong>${fmt(first.time)}</strong> (Bus #${escapeHtml(first.busNo)})</div>`;
-    return;
-  }
-  const best = upcoming[0];
-  const [nh,nm] = now.split(':').map(Number);
-  const [th,tm] = best.time.split(':').map(Number);
-  const mins = (th*60+tm)-(nh*60+nm);
-  let html = `<div class="suggest-result"><strong>${fmt(best.time)}</strong> 🚌 Bus #${escapeHtml(best.busNo)} · in ${mins} min<br>`;
-  if (upcoming.length > 1) {
-    html += `<div style="margin-top:6px;font-size:12px;opacity:.8">Next buses: ${upcoming.slice(1,3).map(b=>`${fmt(b.time)} (#${escapeHtml(b.busNo)})`).join(' · ')}</div>`;
-  }
-  html += '</div>';
-  el.innerHTML = html;
-  trackSearch(from, to);
-}
-
-/* ── 14. RENDER FUNCTIONS ────────────────────────────────────── */
-function buildPopularRoutes() {
-  document.getElementById('popularRoutes').innerHTML = POPULAR.map(r => `
-    <div class="route-chip" onclick="quickSearch('${escapeHtml(r.from)}','${escapeHtml(r.to)}')">
-      <div class="route-chip-from">${escapeHtml(r.from)}</div><div class="route-chip-arrow">↓</div><div class="route-chip-to">${escapeHtml(r.to)}</div>
-    </div>`).join('');
-}
-function quickSearch(from, to) {
-  document.getElementById('searchFrom').value = from;
-  document.getElementById('searchTo').value = to;
-  doSearch();
-  document.getElementById('searchResult').scrollIntoView({ behavior:'smooth', block:'nearest' });
-}
-function renderNextBus() {
-  const now = nowStr();
-  const upcoming = [...buses].filter(b=>b.time>=now).sort((a,b)=>a.time.localeCompare(b.time));
-  const slot = document.getElementById('nextBusSlot');
-  if (!upcoming.length) {
-    slot.innerHTML = `<div class="empty"><div class="ico">🌙</div><p>No more buses today.<br>Check back tomorrow!</p></div>`;
-    return;
-  }
-  const n = upcoming[0];
-  const [nh,nm] = now.split(':').map(Number);
-  const [th,tm] = n.time.split(':').map(Number);
-  const mins = (th*60+tm)-(nh*60+nm);
-  slot.innerHTML = `<div class="next-card"><div class="next-label">⚡ Next Bus</div><div class="next-time">${fmt(n.time)}</div><div class="next-route">${escapeHtml(n.from)} → ${escapeHtml(n.to)}</div><div class="next-pills"><div class="next-pill">🚌 #${escapeHtml(n.busNo)}</div>${n.verified&&n.verified.length>=3?`<div class="next-pill">✔ ${n.verified.length} verified</div>`:''}${n.notes?`<div class="next-pill">📝 ${escapeHtml(n.notes)}</div>`:''}</div><div class="next-mins">🕐 In ${mins} minute${mins!==1?'s':''}</div></div>`;
-}
-function renderNext3() {
-  const now = nowStr();
-  const upcoming = [...buses].filter(b=>b.time>=now).sort((a,b)=>a.time.localeCompare(b.time)).slice(1,4);
-  const row = document.getElementById('next3Row');
-  if (!upcoming.length) { row.innerHTML=''; return; }
-  row.innerHTML = upcoming.map(b=>`
-    <div class="next3-card" onclick="quickSearch('${escapeHtml(b.from)}','${escapeHtml(b.to)}')">
-      <div class="next3-time">${fmt(b.time)}</div><div class="next3-route">${escapeHtml(b.from.split(' ')[0])} → ${escapeHtml(b.to.split(' ')[0])}</div><div class="next3-bus">#${escapeHtml(b.busNo)}</div>
-    </div>`).join('');
-}
-function renderBuses(containerId, filter) {
-  const now = nowStr();
-  let data = [...buses].sort((a,b)=>a.time.localeCompare(b.time));
-  if (filter !== 'all') {
-    const [f,t] = filter.split('→');
-    data = data.filter(b => b.from.toLowerCase().includes(f.toLowerCase().trim()) && b.to.toLowerCase().includes(t.toLowerCase().trim()));
-  }
-  const container = document.getElementById(containerId);
-  if (!data.length) {
-    const emptyHtml = `<div class="empty"><div class="ico">🚍</div><p>No timings yet for this route.<br><a href="#" onclick="goPage('add');document.getElementById('fFrom').value='${filter.split('→')[0]||''}';document.getElementById('fTo').value='${filter.split('→')[1]||''}'">➕ Add the first timing</a></p></div>`;
-    container.innerHTML = emptyHtml;
-    return;
-  }
-  container.innerHTML = data.map(b => busCardHTML(b, b.time<now)).join('');
-}
-function busCardHTML(b, isPast) {
-  const typeLabels = { ktc:'KTC', private:'Private', express:'Express', general:'General' };
-  const typeLabel = typeLabels[b.type] || 'General';
-  const isVerified = b.verified && b.verified.length >= 3;
-  const isAdmin = user && user.email === ADMIN_EMAIL;
-  const isOwner = user && b.addedBy === user.email;
-  const canEdit = isAdmin || isOwner;
-  const canDelete = isAdmin;
-  const isFB = b.id && !b.id.match(/^s\d+$/);
-  const favActive = isFavorite(b.from, b.to);
-  const crowd = crowdCache[b.id] || {};
-  const myVote = crowd.myVote || '';
-  return `<div class="bus-card" style="${isPast?'opacity:.5':''}">
-    <div class="bc-top">
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><div class="bus-no">#${escapeHtml(b.busNo)}</div><span class="type-badge type-${b.type||'general'}">${typeLabel}</span></div>
-      <div class="bus-time" style="${isPast?'color:var(--text3)':''}">${fmt(b.time)}</div>
-    </div>
-    <div class="bus-route-line"><span class="stop">${escapeHtml(b.from)}</span><span class="arrow">→</span><span class="stop">${escapeHtml(b.to)}</span></div>
-    ${b.notes?`<div style="font-size:12px;color:var(--green-dark);margin-bottom:7px">📝 ${escapeHtml(b.notes)}</div>`:''}
-    <div class="crowd-row">
-      <button class="crowd-btn ${myVote==='empty'?'active-empty':''}" onclick="voteCrowd('${b.id}','empty')">🟢 Empty</button>
-      <button class="crowd-btn ${myVote==='medium'?'active-medium':''}" onclick="voteCrowd('${b.id}','medium')">🟡 Medium</button>
-      <button class="crowd-btn ${myVote==='full'?'active-full':''}" onclick="voteCrowd('${b.id}','full')">🔴 Full</button>
-      <span id="crowd_${b.id}" class="crowd-result"></span>
-    </div>
-    <div class="comments-section">
-      <div id="commentsOf_${b.id}"><div style="font-size:12px;color:var(--text3);cursor:pointer" onclick="fetchAndShowComments('${b.id}')">💬 Tap to view comments</div></div>
-      ${user ? `<div class="add-comment-row"><input id="comment_${b.id}" placeholder="Write update... (max 100 chars)" maxlength="100"><button class="comment-submit" onclick="postComment('${b.id}')">Send</button></div>` : ''}
-    </div>
-    <div class="bc-footer" style="margin-top:8px">
-      <div class="bc-meta">
-        ${isVerified?`<span class="verified-text">✔ ${b.verified.length} verified</span>`:`<span>${(b.verified||[]).length} verified</span>`}
-        ${b.ts?`<span>${ago(b.ts)}</span>`:''}
-        ${isPast?'<span style="color:var(--red)">passed</span>':''}
-      </div>
-      <div class="card-actions">
-        ${!isPast?`<button class="verify-btn" onclick="verifyTiming('${b.id}')">✔ Verify</button>`:''}
-        ${user?`<button class="fav-btn ${favActive?'active':''}" onclick="toggleFavorite('${escapeHtml(b.from)}','${escapeHtml(b.to)}')">${favActive?'⭐':'☆'}</button>`:''}
-        ${!isPast?`<button class="share-btn" onclick="shareRoute('${escapeHtml(b.from)}','${escapeHtml(b.to)}','${fmt(b.time)}','${escapeHtml(b.busNo)}')">📤</button>`:''}
-        ${!isPast?`<button class="verify-btn" style="border-color:var(--purple);color:var(--purple)" onclick="markOnBus('${b.id}')">👤 On bus</button>`:''}
-        ${canEdit&&isFB?`<button class="edit-btn" onclick="openEditModal('${b.id}')">✏️</button>`:''}
-        ${canDelete&&isFB?`<button class="del-btn" onclick="deleteBus('${b.id}')">🗑️</button>`:''}
-      </div>
-    </div>
-  </div>`;
-}
-function shareRoute(from, to, time, busNo) {
-  const text = `🚌 Bus #${busNo} from ${from} to ${to} at ${time} IST via CampusBus`;
-  if (navigator.share) {
-    navigator.share({ title: 'CampusBus Route', text });
-  } else {
-    navigator.clipboard?.writeText(text);
-    toast('📋 Route copied!', 'ok');
-  }
-}
-function renderAlerts() {
-  document.getElementById('alertBadge').textContent = alerts.length;
-  if (!alerts.length) {
-    document.getElementById('alertsList').innerHTML = `<div class="empty"><div class="ico">📭</div><p>No alerts right now.<br>All buses running normally!</p></div>`;
-    return;
-  }
-  const icons = { warning:'⚠️', danger:'❌', success:'✅', info:'ℹ️' };
-  document.getElementById('alertsList').innerHTML = alerts.map(a=>`
-    <div class="alert-card ${a.type==='danger'?'danger':a.type==='success'?'success':a.type==='info'?'info':''}">
-      <div class="alert-msg">${icons[a.type]||'📌'} ${escapeHtml(a.message)}</div>
-      <div class="alert-meta">by ${escapeHtml((a.addedBy||'').split('@')[0])} · ${ago(a.ts)}</div>
-    </div>`).join('');
-}
-function renderRouteViz(key) {
-  const stops = ROUTE_VIZ[key] || [];
-  let html = '';
-  stops.forEach((s, i) => {
-    const isLast = i === stops.length - 1;
-    html += `<div class="route-stop"><div><div class="stop-dot ${isLast?'end':''}"></div>${!isLast?`<div class="stop-line"></div>`:''}</div><div style="padding-bottom:${isLast?0:20}px"><div class="stop-label">${escapeHtml(s.name)}</div><div style="display:flex;gap:10px;align-items:center"><div class="stop-time">${escapeHtml(s.time)}</div><span class="stop-tap" onclick="quickSearch('${escapeHtml(s.name.split('/')[0].trim())}','')">Search from here →</span></div></div></div>`;
-  });
-  document.getElementById('routeVizBody').innerHTML = html;
-}
-
-/* ── 15. NAVIGATION ──────────────────────────────────────────── */
-function _activatePage(name) {
-  if (!document.getElementById('page-' + name)) name = 'home';
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + name).classList.add('active');
-  const nb = document.getElementById('nav-' + name);
-  if (nb) nb.classList.add('active');
-  document.getElementById('bottomNav').style.display = name === 'auth' ? 'none' : 'flex';
-  window.scrollTo(0, 0);
-}
-function goPage(name) {
-  const current = history.state && history.state.page;
-  if (current === name) return;
-  history.pushState({ page: name }, '', '?page=' + name);
-  _activatePage(name);
-}
-function homeFilter(route, el) {
-  homeRouteFilter = route;
-  document.querySelectorAll('#homePills .pill').forEach(p=>p.classList.remove('active'));
-  el.classList.add('active'); renderBuses('homeBuses', route);
-}
-function timingsFilter(route, el) {
-  timingsRouteFilter = route;
-  document.querySelectorAll('#timingsPills .pill').forEach(p=>p.classList.remove('active'));
-  el.classList.add('active'); renderBuses('timingsBuses', route);
-}
-
-/* ── 16. ADMIN ───────────────────────────────────────────────── */
-async function loadAdminStats() {
-  if (!window.FB) return;
-  try {
-    const today = new Date().toISOString().slice(0,10);
-    const [busSnap, alertSnap, commentSnap, analyticsSnap] = await Promise.all([
-      window.FB.getDocs(window.FB.collection(window.FB.db,'bus_timings')),
-      window.FB.getDocs(window.FB.collection(window.FB.db,'alerts')),
-      window.FB.getDocs(window.FB.collection(window.FB.db,'comments')),
-      window.FB.getDocs(window.FB.query(window.FB.collection(window.FB.db,'analytics'), window.FB.where('date','==',today))),
-    ]);
-    document.getElementById('adminBusCount').textContent = busSnap.size + SEED.length;
-    document.getElementById('adminAlertCount').textContent = alertSnap.size;
-    document.getElementById('adminCommentCount').textContent = commentSnap.size;
-    const totalSearches = analyticsSnap.docs.reduce((sum,d)=>sum+(d.data().count||0),0);
-    document.getElementById('adminSearchCount').textContent = totalSearches;
-  } catch(e) {}
-}
-function adminExportJSON() {
-  const data = JSON.stringify(buses, null, 2);
-  const blob = new Blob([data], { type:'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = 'campusbus-buses.json'; a.click();
-  toast('📥 JSON exported!','ok');
-}
-function adminExportCSV() {
-  const headers = ['busNo','type','from','to','time','notes','addedBy'];
-  const rows = buses.map(b => [b.busNo,b.type,b.from,b.to,b.time,b.notes||'',b.addedBy||'']);
-  const csv = [headers.join(','), ...rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(','))].join('\n');
-  const blob = new Blob([csv], { type:'text/csv' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = 'campusbus-buses.csv'; a.click();
-  toast('📊 CSV exported!','ok');
-}
-async function adminClearOldAlerts() {
-  if (!window.FB) return;
-  const weekAgo = Date.now() - 7*24*3600000;
-  try {
-    const q = window.FB.query(window.FB.collection(window.FB.db,'alerts'), window.FB.where('ts','<',weekAgo));
-    const snap = await window.FB.getDocs(q);
-    await Promise.all(snap.docs.map(d => window.FB.deleteDoc(d.ref)));
-    toast(`🗑️ Cleared ${snap.size} old alerts`,'ok');
-  } catch(e) { toast('Error: '+e.message,'err'); }
-}
-
-/* ── 17. PWA & NOTIFICATIONS ─────────────────────────────────── */
-function triggerInstall() {
-  if (!deferredInstall) { toast('App is already installed or not supported',''); return; }
-  deferredInstall.prompt();
-  deferredInstall.userChoice.then(r => {
-    if (r.outcome==='accepted') { toast('✅ App installed!','ok'); document.getElementById('installBanner').classList.remove('show'); }
-    deferredInstall = null;
-  });
-}
-function updateNotifUI() {
-  if (!('Notification' in window)) { document.getElementById('notifRow').style.display = 'none'; return; }
-  const status = Notification.permission;
-  const desc = document.getElementById('notifDesc');
-  const badge = document.getElementById('notifStatus');
-  const bell = document.getElementById('notifBell');
-  if (status === 'granted') {
-    desc.textContent = 'Bus alerts are ON ✅';
-    badge.textContent = 'ON';
-    badge.style.color = 'var(--green)';
-    bell.style.display = 'block';
-    const unread = parseInt(localStorage.getItem('campusbus_unread')||'0');
-    if (unread > 0) document.getElementById('notifDot').style.display = 'block';
-  } else if (status === 'denied') {
-    desc.textContent = 'Blocked — enable in browser settings';
-    badge.textContent = 'BLOCKED';
-    badge.style.color = 'var(--red)';
-    bell.style.display = 'none';
-  } else {
-    desc.textContent = 'Tap to get bus delay alerts';
-    badge.textContent = 'OFF';
-    badge.style.color = 'var(--text3)';
-    bell.style.display = 'none';
-  }
-}
-async function requestNotifPermission() {
-  if (!('Notification' in window)) { toast('Notifications not supported', 'err'); return; }
-  if (Notification.permission === 'granted') {
-    toast('Notifications already enabled! ✅', 'ok');
-    sendLocalNotif('CampusBus 🚍', 'Bus alerts are working!');
-    return;
-  }
-  if (Notification.permission === 'denied') {
-    toast('Blocked — go to browser Settings → Site Settings → Notifications', 'err');
-    return;
-  }
-  const result = await Notification.requestPermission();
-  updateNotifUI();
-  if (result === 'granted') {
-    toast('🔔 Notifications enabled!', 'ok');
-    sendLocalNotif('CampusBus 🚍', 'You will now get bus delay alerts.');
-    localStorage.setItem('campusbus_notif', 'on');
-  } else {
-    toast('Notifications blocked by user', '');
-  }
-}
-function sendLocalNotif(title, body, tag='campusbus') {
-  if (Notification.permission !== 'granted') return;
-  try {
-    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.ready.then(reg => {
-        reg.showNotification(title, { body, icon:'/icon-192.png', badge:'/icon-72.png', tag, vibrate:[200,100,200], data:{ url:'./' } });
+  if (window.FB && window.FB.db && !id.startsWith('s') && navigator.onLine) {
+    try {
+      await window.FB.updateDoc(window.FB.doc(window.FB.db, 'bus_timings', id), {
+        busNo, type, from, to, time, notes
       });
-    } else {
-      new Notification(title, { body, tag });
+    } catch(e) {}
+  }
+
+  closeEditModal();
+  toast('✅ Bus timing updated!', 'ok');
+  renderAllViews();
+}
+
+/* ── 13. AUTHENTICATION ───────────────────────────────────────── */
+function setupAuthListener() {
+  if (!window.FB) return;
+  window.FB.onAuthStateChanged(window.FB.auth, user => {
+    currentUser = user;
+    updateUserAuthUI();
+  });
+}
+
+function updateUserAuthUI() {
+  const nameLabel = document.getElementById('userNameLabel');
+  const emailLabel = document.getElementById('userEmailLabel');
+  const avatar = document.getElementById('userAvatar');
+  const loggedIn = document.getElementById('loggedInButtons');
+  const loggedOut = document.getElementById('loggedOutButtons');
+  const adminBox = document.getElementById('adminPanelBox');
+
+  if (currentUser) {
+    const name = currentUser.displayName || currentUser.email.split('@')[0];
+    nameLabel.textContent = name;
+    emailLabel.textContent = currentUser.email;
+    avatar.textContent = name[0].toUpperCase();
+    loggedIn.style.display = 'block';
+    loggedOut.style.display = 'none';
+
+    const added = buses.filter(b => b.addedBy === currentUser.email).length;
+    const verified = buses.filter(b => (b.verified||[]).includes(currentUser.email)).length;
+    document.getElementById('userStatAdded').textContent = added;
+    document.getElementById('userStatVerified').textContent = verified;
+
+    if (currentUser.email === ADMIN_EMAIL) {
+      adminBox.style.display = 'block';
+      updateAdminCounts();
     }
-    const unread = parseInt(localStorage.getItem('campusbus_unread')||'0');
-    localStorage.setItem('campusbus_unread', unread + 1);
-    document.getElementById('notifDot').style.display = 'block';
-  } catch(e) {}
-}
-function toggleNotifPanel() {
-  localStorage.setItem('campusbus_unread', '0');
-  document.getElementById('notifDot').style.display = 'none';
-  toast('🔔 All caught up!', 'ok');
-}
-function notifyNewAlert(message) {
-  if (Notification.permission === 'granted') {
-    sendLocalNotif('🚨 CampusBus Alert', message, 'campusbus-alert');
+  } else {
+    nameLabel.textContent = 'Guest User';
+    emailLabel.textContent = 'Not logged in';
+    avatar.textContent = '?';
+    loggedIn.style.display = 'none';
+    loggedOut.style.display = 'block';
+    adminBox.style.display = 'none';
   }
 }
-function checkNextBusNotif() {
-  if (Notification.permission !== 'granted') return;
-  const now = nowStr();
-  const upcoming = [...buses].filter(b => b.time >= now).sort((a,b) => a.time.localeCompare(b.time));
-  if (!upcoming.length) return;
-  const next = upcoming[0];
-  const [nh,nm] = now.split(':').map(Number);
-  const [th,tm] = next.time.split(':').map(Number);
-  const mins = (th*60+tm) - (nh*60+nm);
-  if (mins === 10) {
-    const lastNotifKey = 'campusbus_last_notif_' + next.time;
-    if (!localStorage.getItem(lastNotifKey)) {
-      sendLocalNotif('🚍 Bus in 10 minutes!', `Bus #${next.busNo} to ${next.to} at ${fmt(next.time)}`);
-      localStorage.setItem(lastNotifKey, '1');
-    }
+
+function openAuthModal() { document.getElementById('authModal').classList.add('open'); }
+function closeAuthModal() { document.getElementById('authModal').classList.remove('open'); }
+function toggleAuthForm(isRegister) {
+  document.getElementById('loginFormArea').style.display = isRegister ? 'none' : 'block';
+  document.getElementById('registerFormArea').style.display = isRegister ? 'block' : 'none';
+  document.getElementById('authModalTitle').textContent = isRegister ? 'Student Registration' : 'Student Login';
+}
+
+async function doEmailLogin() {
+  const email = document.getElementById('authEmail').value.trim();
+  const pass = document.getElementById('authPass').value;
+  if (!email || !pass) { toast('Please fill all fields', 'err'); return; }
+  try {
+    await window.FB.signInWithEmailAndPassword(window.FB.auth, email, pass);
+    closeAuthModal();
+    toast('✅ Welcome back!', 'ok');
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function doRegister() {
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPass').value;
+  if (!email || !pass) { toast('Please fill all fields', 'err'); return; }
+  try {
+    await window.FB.createUserWithEmailAndPassword(window.FB.auth, email, pass);
+    closeAuthModal();
+    toast('🎓 Account created!', 'ok');
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function doGoogleLogin() {
+  try {
+    const provider = new window.FB.GoogleAuthProvider();
+    await window.FB.signInWithPopup(window.FB.auth, provider);
+    closeAuthModal();
+    toast('✅ Google login successful!', 'ok');
+  } catch(e) { toast('Google login popup cancelled', 'err'); }
+}
+
+async function doLogout() {
+  if (window.FB) await window.FB.signOut(window.FB.auth);
+  currentUser = null;
+  updateUserAuthUI();
+  toast('Signed out', '');
+}
+
+/* ── 14. ADMIN & EXPORT ───────────────────────────────────────── */
+function updateAdminCounts() {
+  const bCount = document.getElementById('adminTotalBuses');
+  const aCount = document.getElementById('adminTotalAlerts');
+  if (bCount) bCount.textContent = buses.length;
+  if (aCount) aCount.textContent = alerts.length;
+}
+
+function exportDataJSON() {
+  const blob = new Blob([JSON.stringify(buses, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'campusbus-data.json';
+  a.click();
+  toast('📥 JSON Export downloaded!', 'ok');
+}
+
+async function clearOldAlertsAdmin() {
+  if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
+  if (!confirm('Clear alerts older than 7 days?')) return;
+  if (window.FB && window.FB.db) {
+    try {
+      const weekAgo = Date.now() - 7*86400000;
+      const q = window.FB.query(window.FB.collection(window.FB.db, 'alerts'), window.FB.where('ts', '<', weekAgo));
+      const snap = await window.FB.getDocs(q);
+      await Promise.all(snap.docs.map(d => window.FB.deleteDoc(d.ref)));
+      toast(`🗑️ Cleared ${snap.size} old alerts`, 'ok');
+    } catch(e) { toast(e.message, 'err'); }
   }
+}
+
+/* ── 15. PWA & NOTIFICATIONS ──────────────────────────────────── */
+function triggerPWAInstall() {
+  if (deferredPWA) {
+    deferredPWA.prompt();
+    deferredPWA.userChoice.then(res => {
+      if (res.outcome === 'accepted') toast('✅ App installed!', 'ok');
+      deferredPWA = null;
+    });
+  } else {
+    toast('Tap browser Share/Menu → "Add to Home Screen"', '');
+  }
+}
+
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) { toast('Notifications not supported', 'err'); return; }
+  const res = await Notification.requestPermission();
+  if (res === 'granted') toast('🔔 Bus notifications enabled!', 'ok');
+  else toast('Notifications not enabled', '');
 }
 </script>
 </body>
