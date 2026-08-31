@@ -85,6 +85,7 @@
                                      from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
   import { getAuth, onAuthStateChanged, signOut,
            signInWithEmailAndPassword, createUserWithEmailAndPassword,
+           sendPasswordResetEmail,
            GoogleAuthProvider, signInWithPopup }
                                      from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 
@@ -112,6 +113,7 @@
     updateDoc, getDoc, getDocs, doc, arrayUnion, deleteDoc,
     setDoc, increment, serverTimestamp,
     signInWithEmailAndPassword, createUserWithEmailAndPassword,
+    sendPasswordResetEmail,
     signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup,
     ready: true
   };
@@ -1143,7 +1145,7 @@ table.timings-table tr:hover {
   margin-bottom: 4px;
 }
 
-/* ── MODAL ────────────────────────────────────────────────── */
+/* ── MODAL & AUTH TABS ────────────────────────────────────── */
 .modal-overlay {
   display: none;
   position: fixed;
@@ -1179,8 +1181,57 @@ table.timings-table tr:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
+
+/* Segmented Auth Tabs */
+.auth-nav-tabs {
+  display: flex;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  margin-bottom: 16px;
+  gap: 4px;
+}
+
+.auth-tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.auth-tab-btn.active {
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.pass-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.pass-toggle-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  opacity: 0.7;
+}
+.pass-toggle-btn:hover { opacity: 1; }
 
 /* ── TOAST NOTIFICATIONS ──────────────────────────────────── */
 #toast {
@@ -1600,7 +1651,7 @@ body.dark-mode #toast {
 
         <div id="authActions">
           <div id="loggedOutButtons">
-            <button class="btn btn-block" onclick="openAuthModal()" style="margin-bottom:8px">🔑 Login / Register</button>
+            <button class="btn btn-block" onclick="openAuthModal('signin')" style="margin-bottom:8px">🔑 Sign In / Register</button>
           </div>
           <div id="loggedInButtons" style="display:none">
             <button class="btn btn-secondary btn-block" onclick="doLogout()">🚪 Sign Out</button>
@@ -1667,7 +1718,7 @@ body.dark-mode #toast {
 
       <div style="padding:16px;text-align:center;font-size:11px;color:var(--text-light)">
         CollegeBus · ACMSR College Community Transit<br>
-        v5.4 Simplified · collegebus.pages.dev
+        v5.5 · collegebus.pages.dev
       </div>
     </div>
 
@@ -1702,48 +1753,59 @@ body.dark-mode #toast {
 
 </div>
 
-<!-- AUTH MODAL -->
+<!-- UNIFIED AUTH MODAL (Sign In / Register / Reset) -->
 <div class="modal-overlay" id="authModal" onclick="if(event.target===this) closeAuthModal()">
   <div class="modal-sheet">
     <div class="modal-header">
-      <div style="font-size:17px;font-weight:800" id="authModalTitle">Student Login</div>
+      <div style="font-size:17px;font-weight:800" id="authModalTitle">Student Account</div>
       <button class="icon-btn" onclick="closeAuthModal()">✕</button>
     </div>
-    <div id="loginFormArea">
-      <div class="form-group">
-        <label class="form-label">Email</label>
-        <input type="email" id="authEmail" placeholder="yourname@gmail.com" autocomplete="email">
+
+    <!-- Segmented Mode Tabs -->
+    <div class="auth-nav-tabs">
+      <button class="auth-tab-btn active" id="tabBtnSignIn" onclick="setAuthMode('signin')">🔑 Sign In</button>
+      <button class="auth-tab-btn" id="tabBtnRegister" onclick="setAuthMode('register')">🎓 Register</button>
+    </div>
+
+    <!-- Single Shared Form -->
+    <div class="form-group">
+      <label class="form-label">Student Email</label>
+      <input type="email" id="authEmail" placeholder="yourname@gmail.com" autocomplete="email" style="padding-left:12px">
+    </div>
+
+    <div class="form-group">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <label class="form-label" style="margin-bottom:0" id="passLabel">Password</label>
+        <a href="javascript:void(0)" onclick="doPasswordReset()" id="forgotPassLink" style="font-size:11.5px;color:var(--primary);font-weight:700">Forgot?</a>
       </div>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <input type="password" id="authPass" placeholder="Password" autocomplete="current-password">
-      </div>
-      <button class="btn btn-block" id="btnEmailLogin" onclick="doEmailLogin()" style="margin-bottom:8px">🔑 Sign In</button>
-      <button class="btn btn-secondary btn-block" id="btnGoogleLogin" onclick="doGoogleLogin()" style="margin-bottom:12px">
-        <svg width="16" height="16" viewBox="0 0 48 48" style="margin-right:6px"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.7 33.1 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9l6-6C34.5 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-4z"/><path fill="#FF3D00" d="m6.3 14.7 7 5.1C15.1 16.1 19.2 13 24 13c3 0 5.8 1.1 7.9 2.9l6-6C34.5 6.1 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-1.9 13.7-5.1l-6.3-5.3C29.5 35.3 26.9 36 24 36c-5.2 0-9.6-2.9-11.3-7l-7 5.4C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.7 2.1-2 3.9-3.7 5.2l6.4 5.3C41.7 35 44 30 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
-        Continue with Google
-      </button>
-      <div style="text-align:center;font-size:12.5px;color:var(--text-muted)">
-        Don't have an account? <a href="javascript:void(0)" onclick="toggleAuthForm(true)" style="color:var(--primary);font-weight:700">Register</a>
+      <div class="pass-input-wrapper">
+        <input type="password" id="authPass" placeholder="Enter password (min 6 chars)" autocomplete="current-password" style="padding-left:12px;padding-right:38px">
+        <button type="button" class="pass-toggle-btn" id="passToggleBtn" onclick="togglePasswordVisibility()" title="Show/Hide Password">👁️</button>
       </div>
     </div>
-    <div id="registerFormArea" style="display:none">
-      <div class="form-group">
-        <label class="form-label">Email</label>
-        <input type="email" id="regEmail" placeholder="yourname@gmail.com" autocomplete="email">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Password (min 6 chars)</label>
-        <input type="password" id="regPass" placeholder="Create password" autocomplete="new-password">
-      </div>
-      <button class="btn btn-block" id="btnRegister" onclick="doRegister()" style="margin-bottom:8px">🎓 Create Account</button>
-      <button class="btn btn-secondary btn-block" onclick="doGoogleLogin()" style="margin-bottom:12px">
-        <svg width="16" height="16" viewBox="0 0 48 48" style="margin-right:6px"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.7 33.1 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9l6-6C34.5 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-4z"/><path fill="#FF3D00" d="m6.3 14.7 7 5.1C15.1 16.1 19.2 13 24 13c3 0 5.8 1.1 7.9 2.9l6-6C34.5 6.1 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-1.9 13.7-5.1l-6.3-5.3C29.5 35.3 26.9 36 24 36c-5.2 0-9.6-2.9-11.3-7l-7 5.4C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.7 2.1-2 3.9-3.7 5.2l6.4 5.3C41.7 35 44 30 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
-        Sign up with Google
+
+    <!-- Sign In Action Area -->
+    <div id="authActionsSignIn">
+      <button class="btn btn-block" id="btnSubmitSignIn" onclick="doEmailLogin()" style="margin-bottom:10px">
+        🔑 Sign In
       </button>
-      <div style="text-align:center;font-size:12.5px;color:var(--text-muted)">
-        Already registered? <a href="javascript:void(0)" onclick="toggleAuthForm(false)" style="color:var(--primary);font-weight:700">Login</a>
-      </div>
+    </div>
+
+    <!-- Register Action Area -->
+    <div id="authActionsRegister" style="display:none">
+      <button class="btn btn-block" id="btnSubmitRegister" onclick="doRegister()" style="margin-bottom:10px">
+        🎓 Create Student Account
+      </button>
+    </div>
+
+    <!-- Google One-Tap -->
+    <button class="btn btn-secondary btn-block" id="btnGoogleLogin" onclick="doGoogleLogin()" style="margin-bottom:12px">
+      <svg width="16" height="16" viewBox="0 0 48 48" style="margin-right:6px"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.7 33.1 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9l6-6C34.5 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-4z"/><path fill="#FF3D00" d="m6.3 14.7 7 5.1C15.1 16.1 19.2 13 24 13c3 0 5.8 1.1 7.9 2.9l6-6C34.5 6.1 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-1.9 13.7-5.1l-6.3-5.3C29.5 35.3 26.9 36 24 36c-5.2 0-9.6-2.9-11.3-7l-7 5.4C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.7 2.1-2 3.9-3.7 5.2l6.4 5.3C41.7 35 44 30 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
+      Continue with Google
+    </button>
+
+    <div style="text-align:center;font-size:12px;color:var(--text-muted)">
+      🔒 Verified student access for timetable edits & crowd updates
     </div>
   </div>
 </div>
@@ -1758,11 +1820,11 @@ body.dark-mode #toast {
     <input type="hidden" id="editBusId">
     <div class="form-group">
       <label class="form-label">Bus Number</label>
-      <input type="text" id="editBusNo">
+      <input type="text" id="editBusNo" style="padding-left:12px">
     </div>
     <div class="form-group">
       <label class="form-label">Type</label>
-      <select id="editBusType">
+      <select id="editBusType" style="padding-left:12px">
         <option value="general">🟢 General</option>
         <option value="ktc">🔵 KTC</option>
         <option value="private">🟡 Private</option>
@@ -1771,19 +1833,19 @@ body.dark-mode #toast {
     </div>
     <div class="form-group">
       <label class="form-label">From</label>
-      <input list="stops-list" id="editFrom">
+      <input list="stops-list" id="editFrom" style="padding-left:12px">
     </div>
     <div class="form-group">
       <label class="form-label">To</label>
-      <input list="stops-list" id="editTo">
+      <input list="stops-list" id="editTo" style="padding-left:12px">
     </div>
     <div class="form-group">
       <label class="form-label">Time</label>
-      <input type="time" id="editTime">
+      <input type="time" id="editTime" style="padding-left:12px">
     </div>
     <div class="form-group">
       <label class="form-label">Notes</label>
-      <input type="text" id="editNotes">
+      <input type="text" id="editNotes" style="padding-left:12px">
     </div>
     <button class="btn btn-block" onclick="saveBusEdit()" style="margin-bottom:8px">💾 Update Timing</button>
     <button class="btn btn-secondary btn-block" onclick="closeEditModal()">Cancel</button>
@@ -1884,6 +1946,7 @@ const ROUTE_VIZ = {
 const ADMIN_EMAIL = 'zevbuildstudio@gmail.com';
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000; // 7 Days Auto Expiration
 let currentUser = null;
+let currentAuthMode = 'signin'; // 'signin' or 'register'
 let buses = [...SEED];
 let alerts = [...SEED_ALERTS];
 let favorites = JSON.parse(localStorage.getItem('collegebus_favs') || localStorage.getItem('campusbus_favs') || '[]');
@@ -2126,11 +2189,12 @@ function initializeAppLogic() {
   // Setup Enter key on Auth modal inputs
   ['authEmail', 'authPass'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') doEmailLogin(); });
-  });
-  ['regEmail', 'regPass'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') doRegister(); });
+    if (el) el.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        if (currentAuthMode === 'register') doRegister();
+        else doEmailLogin();
+      }
+    });
   });
 
   setupAuthListener();
@@ -2392,7 +2456,7 @@ async function loadBusComments(busId) {
 async function postCardComment(busId) {
   if (!currentUser) {
     toast('🔒 Please sign in to post live updates', 'err');
-    openAuthModal();
+    openAuthModal('signin');
     return;
   }
   const inp = document.getElementById('inputComment_' + busId);
@@ -2659,7 +2723,7 @@ function renderLeaderboard() {
 async function submitNewTiming() {
   if (!currentUser) {
     toast('🔒 Login required to save new bus timings', 'err');
-    openAuthModal();
+    openAuthModal('signin');
     return;
   }
   const busNo = document.getElementById('addBusNo').value.trim();
@@ -2704,7 +2768,7 @@ async function submitNewTiming() {
 async function submitAlert() {
   if (!currentUser) {
     toast('🔒 Login required to broadcast route alerts', 'err');
-    openAuthModal();
+    openAuthModal('signin');
     return;
   }
   const type = document.getElementById('postAlertType').value;
@@ -2735,7 +2799,7 @@ async function submitAlert() {
 async function verifyBusTiming(busId) {
   if (!currentUser) {
     toast('🔒 Please sign in to verify bus timings', 'err');
-    openAuthModal();
+    openAuthModal('signin');
     return;
   }
   const bus = buses.find(b => b.id === busId);
@@ -2763,7 +2827,7 @@ async function verifyBusTiming(busId) {
 function setCrowdCapacity(busId, level) {
   if (!currentUser) {
     toast('🔒 Please sign in to report seat capacity', 'err');
-    openAuthModal();
+    openAuthModal('signin');
     return;
   }
   crowdCache[busId] = level;
@@ -2866,7 +2930,7 @@ async function saveBusEdit() {
   renderAllViews();
 }
 
-/* ── 13. AUTHENTICATION (ENHANCED DIAGNOSTICS) ────────────────── */
+/* ── 13. AUTHENTICATION (UNIFIED FOOLPROOF SYSTEM) ─────────────── */
 function setupAuthListener() {
   if (!window.FB || !window.FB.auth) {
     window._onFirebaseReady = setupAuthListener;
@@ -2920,40 +2984,81 @@ function updateUserAuthUI() {
   }
 }
 
-function openAuthModal() {
+function setAuthMode(mode) {
+  currentAuthMode = mode;
+  const tabIn = document.getElementById('tabBtnSignIn');
+  const tabReg = document.getElementById('tabBtnRegister');
+  const actIn = document.getElementById('authActionsSignIn');
+  const actReg = document.getElementById('authActionsRegister');
+  const forgotLink = document.getElementById('forgotPassLink');
+  const passLabel = document.getElementById('passLabel');
+
+  if (mode === 'register') {
+    if (tabIn) tabIn.classList.remove('active');
+    if (tabReg) tabReg.classList.add('active');
+    if (actIn) actIn.style.display = 'none';
+    if (actReg) actReg.style.display = 'block';
+    if (forgotLink) forgotLink.style.display = 'none';
+    if (passLabel) passLabel.textContent = 'Create Password (min 6 chars)';
+  } else {
+    if (tabIn) tabIn.classList.add('active');
+    if (tabReg) tabReg.classList.remove('active');
+    if (actIn) actIn.style.display = 'block';
+    if (actReg) actReg.style.display = 'none';
+    if (forgotLink) forgotLink.style.display = 'inline';
+    if (passLabel) passLabel.textContent = 'Password';
+  }
+}
+
+function openAuthModal(mode = 'signin') {
+  setAuthMode(mode);
   document.getElementById('authModal').classList.add('open');
   setTimeout(() => {
     const inp = document.getElementById('authEmail');
     if (inp) inp.focus();
   }, 100);
 }
-function closeAuthModal() { document.getElementById('authModal').classList.remove('open'); }
-function toggleAuthForm(isRegister) {
-  document.getElementById('loginFormArea').style.display = isRegister ? 'none' : 'block';
-  document.getElementById('registerFormArea').style.display = isRegister ? 'block' : 'none';
-  document.getElementById('authModalTitle').textContent = isRegister ? 'Student Registration' : 'Student Login';
+
+function closeAuthModal() {
+  document.getElementById('authModal').classList.remove('open');
+}
+
+function togglePasswordVisibility() {
+  const passInp = document.getElementById('authPass');
+  const toggleBtn = document.getElementById('passToggleBtn');
+  if (!passInp) return;
+  if (passInp.type === 'password') {
+    passInp.type = 'text';
+    if (toggleBtn) toggleBtn.textContent = '🙈';
+  } else {
+    passInp.type = 'password';
+    if (toggleBtn) toggleBtn.textContent = '👁️';
+  }
 }
 
 function parseAuthError(e) {
   const code = e.code || '';
   const msg = e.message || '';
   if (code === 'auth/operation-not-allowed') {
-    return '❌ Auth provider not enabled in Firebase Console -> Authentication -> Sign-in method.';
+    return '❌ Email login is disabled in Firebase Console -> Authentication -> Sign-in method.';
   }
   if (code === 'auth/unauthorized-domain') {
-    return '❌ Domain not authorized! Add your domain to Firebase Console -> Authentication -> Settings -> Authorized domains.';
+    return '❌ Domain not authorized! Add collegebus.pages.dev to Firebase Console -> Authentication -> Settings -> Authorized domains.';
   }
   if (code === 'auth/configuration-not-found' || code.includes('configuration-not-found')) {
-    return '❌ Authentication not initialized in Firebase Console for project zevbuild.';
+    return '❌ Firebase Authentication service is not configured.';
   }
   if (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
-    return '❌ Invalid email or password. Please register if you are new!';
+    return '❌ Incorrect password or account does not exist. If you are new, please tap the "Register" tab!';
   }
   if (code === 'auth/email-already-in-use') {
-    return '❌ Email already registered. Please sign in instead.';
+    return '❌ Email already registered! Tap "Sign In" tab to log in.';
   }
   if (code === 'auth/weak-password') {
-    return '❌ Password too weak (minimum 6 characters required).';
+    return '❌ Password must be at least 6 characters.';
+  }
+  if (code === 'auth/invalid-email') {
+    return '❌ Please enter a valid email address.';
   }
   if (code === 'auth/popup-closed-by-user') {
     return '⚠️ Google sign-in was cancelled.';
@@ -2967,11 +3072,12 @@ function parseAuthError(e) {
 async function doEmailLogin() {
   const emailInp = document.getElementById('authEmail');
   const passInp = document.getElementById('authPass');
-  const btn = document.getElementById('btnEmailLogin');
-  const email = emailInp.value.trim();
-  const pass = passInp.value;
+  const btn = document.getElementById('btnSubmitSignIn');
+  const email = (emailInp.value || '').trim().toLowerCase();
+  const pass = passInp.value || '';
 
-  if (!email || !pass) { toast('Please fill both email and password', 'err'); return; }
+  if (!email) { toast('Please enter your email', 'err'); emailInp.focus(); return; }
+  if (!pass) { toast('Please enter your password', 'err'); passInp.focus(); return; }
 
   if (!window.FB || !window.FB.auth) {
     toast('⚠️ Connecting to Firebase... please try in a moment.', 'err');
@@ -2994,21 +3100,22 @@ async function doEmailLogin() {
 }
 
 async function doRegister() {
-  const emailInp = document.getElementById('regEmail');
-  const passInp = document.getElementById('regPass');
-  const btn = document.getElementById('btnRegister');
-  const email = emailInp.value.trim();
-  const pass = passInp.value;
+  const emailInp = document.getElementById('authEmail');
+  const passInp = document.getElementById('authPass');
+  const btn = document.getElementById('btnSubmitRegister');
+  const email = (emailInp.value || '').trim().toLowerCase();
+  const pass = passInp.value || '';
 
-  if (!email || !pass) { toast('Please fill all registration fields', 'err'); return; }
-  if (pass.length < 6) { toast('Password must be at least 6 characters', 'err'); return; }
+  if (!email) { toast('Please enter your email to register', 'err'); emailInp.focus(); return; }
+  if (!pass) { toast('Please choose a password', 'err'); passInp.focus(); return; }
+  if (pass.length < 6) { toast('Password must be at least 6 characters', 'err'); passInp.focus(); return; }
 
   if (!window.FB || !window.FB.auth) {
     toast('⚠️ Connecting to Firebase... please try in a moment.', 'err');
     return;
   }
 
-  const originalText = btn ? btn.innerHTML : '🎓 Create Account';
+  const originalText = btn ? btn.innerHTML : '🎓 Create Student Account';
   if (btn) { btn.innerHTML = 'Creating account...'; btn.disabled = true; }
 
   try {
@@ -3020,6 +3127,30 @@ async function doRegister() {
     toast(parseAuthError(e), 'err');
   } finally {
     if (btn) { btn.innerHTML = originalText; btn.disabled = false; }
+  }
+}
+
+async function doPasswordReset() {
+  const emailInp = document.getElementById('authEmail');
+  const email = (emailInp.value || '').trim().toLowerCase();
+
+  if (!email) {
+    toast('Please enter your email address to reset password', 'err');
+    emailInp.focus();
+    return;
+  }
+
+  if (!window.FB || !window.FB.auth) {
+    toast('⚠️ Connecting to Firebase... please try in a moment.', 'err');
+    return;
+  }
+
+  try {
+    await window.FB.sendPasswordResetEmail(window.FB.auth, email);
+    toast('📧 Password reset email sent to ' + email + '! Check your inbox.', 'ok');
+  } catch(e) {
+    console.error('[CollegeBus Password Reset Error]:', e);
+    toast(parseAuthError(e), 'err');
   }
 }
 
@@ -3103,13 +3234,15 @@ async function requestNotificationPermission() {
 
 /* ── 16. EXPOSE GLOBAL HANDLERS TO WINDOW ─────────────────────── */
 window.goPage = goPage;
+window.setAuthMode = setAuthMode;
 window.doEmailLogin = doEmailLogin;
 window.doRegister = doRegister;
+window.doPasswordReset = doPasswordReset;
+window.togglePasswordVisibility = togglePasswordVisibility;
 window.doGoogleLogin = doGoogleLogin;
 window.doLogout = doLogout;
 window.openAuthModal = openAuthModal;
 window.closeAuthModal = closeAuthModal;
-window.toggleAuthForm = toggleAuthForm;
 window.submitNewTiming = submitNewTiming;
 window.submitAlert = submitAlert;
 window.verifyBusTiming = verifyBusTiming;
