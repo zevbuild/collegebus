@@ -85,7 +85,7 @@
                                      from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
   import { getAuth, onAuthStateChanged, signOut,
            signInWithEmailAndPassword, createUserWithEmailAndPassword,
-           sendPasswordResetEmail,
+           sendPasswordResetEmail, updateProfile,
            GoogleAuthProvider, signInWithPopup }
                                      from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 
@@ -113,7 +113,7 @@
     updateDoc, getDoc, getDocs, doc, arrayUnion, deleteDoc,
     setDoc, increment, serverTimestamp,
     signInWithEmailAndPassword, createUserWithEmailAndPassword,
-    sendPasswordResetEmail,
+    sendPasswordResetEmail, updateProfile,
     signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup,
     ready: true
   };
@@ -555,7 +555,7 @@ body {
   margin-top: 2px;
 }
 
-/* ── SEARCH CARD ──────────────────────────────────────────── */
+/* ── SEARCH CARD ──────────────────────────────────── */
 .search-card {
   background: var(--surface-card);
   border: 1px solid var(--border);
@@ -661,7 +661,7 @@ input:focus, select:focus, textarea:focus {
   border-color: var(--primary);
 }
 
-/* ── FILTER CHIPS ─────────────────────────────────────────── */
+/* ── FILTER CHIPS ─────────────────────────────────── */
 .filter-bar {
   display: flex;
   gap: 6px;
@@ -700,7 +700,7 @@ body.dark-mode .pill.active {
   color: white;
 }
 
-/* ── BUS CARD (Simplified & Clean) ────────────────────────── */
+/* ── BUS CARD (Simplified & Clean) ────────────────── */
 .bus-list {
   padding: 0 16px;
   display: flex;
@@ -916,7 +916,7 @@ body.dark-mode .card-notes {
   font-size: 12px;
 }
 
-/* ── BUTTONS ──────────────────────────────────────────────── */
+/* ── BUTTONS ──────────────────────────────────────── */
 .btn {
   background: var(--primary);
   color: white;
@@ -963,7 +963,7 @@ body.dark-mode .card-notes {
   width: 100%;
 }
 
-/* ── BOTTOM NAVIGATION ────────────────────────────────────── */
+/* ── BOTTOM NAVIGATION ────────────────────────────── */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -1004,7 +1004,7 @@ body.dark-mode .card-notes {
   color: var(--primary);
 }
 
-/* ── TABLE VIEW FOR TIMINGS ───────────────────────────────── */
+/* ── TABLE VIEW FOR TIMINGS ───────────────────────── */
 .table-container {
   overflow-x: auto;
   border: 1px solid var(--border);
@@ -1044,7 +1044,7 @@ table.timings-table tr:hover {
   background: var(--surface-hover);
 }
 
-/* ── ROUTE VISUALIZATION ──────────────────────────────────── */
+/* ── ROUTE VISUALIZATION ──────────────────────────── */
 .timeline-card {
   background: var(--surface-card);
   border: 1px solid var(--border);
@@ -1105,7 +1105,7 @@ table.timings-table tr:hover {
   color: var(--text-muted);
 }
 
-/* ── SECTION TITLE ────────────────────────────────────────── */
+/* ── SECTION TITLE ────────────────────────────────── */
 .section-head {
   padding: 14px 16px 8px;
   display: flex;
@@ -1122,7 +1122,7 @@ table.timings-table tr:hover {
   gap: 6px;
 }
 
-/* ── CARD BOXES & FORMS ───────────────────────────────────── */
+/* ── CARD BOXES & FORMS ───────────────────────────── */
 .form-box {
   background: var(--surface-card);
   border: 1px solid var(--border);
@@ -1145,7 +1145,7 @@ table.timings-table tr:hover {
   margin-bottom: 4px;
 }
 
-/* ── MODAL & AUTH TABS ────────────────────────────────────── */
+/* ── MODAL & AUTH TABS ────────────────────────────── */
 .modal-overlay {
   display: none;
   position: fixed;
@@ -1233,7 +1233,7 @@ table.timings-table tr:hover {
 }
 .pass-toggle-btn:hover { opacity: 1; }
 
-/* ── TOAST NOTIFICATIONS ──────────────────────────────────── */
+/* ── TOAST NOTIFICATIONS ──────────────────────────── */
 #toast {
   position: fixed;
   bottom: 78px;
@@ -1266,7 +1266,7 @@ body.dark-mode #toast {
 #toast.ok { background: #059669; }
 #toast.err { background: #DC2626; }
 
-/* ── EMPTY STATE & SPINNER ────────────────────────────────── */
+/* ── EMPTY STATE & SPINNER ────────────────────────── */
 .empty-state {
   text-align: center;
   padding: 36px 16px;
@@ -1633,7 +1633,10 @@ body.dark-mode #toast {
             ?
           </div>
           <div>
-            <div style="font-size:16px;font-weight:800" id="userNameLabel">Guest User</div>
+            <div style="font-size:16px;font-weight:800;display:flex;align-items:center;gap:6px">
+              <span id="userNameLabel">Guest User</span>
+              <button class="btn btn-sm btn-secondary" id="editUsernameBtn" onclick="openUsernameModal()" style="display:none;padding:2px 7px;font-size:11px" title="Change Public Username">✏️ Edit @handle</button>
+            </div>
             <div style="font-size:12px;color:var(--text-muted)" id="userEmailLabel">Not logged in</div>
           </div>
         </div>
@@ -1773,6 +1776,16 @@ body.dark-mode #toast {
       <input type="email" id="authEmail" placeholder="yourname@gmail.com" autocomplete="email" style="padding-left:12px">
     </div>
 
+    <!-- Public Username (Register Mode Only) -->
+    <div class="form-group" id="regUsernameGroup" style="display:none">
+      <label class="form-label">Choose Public Username (Unique)</label>
+      <div style="position:relative">
+        <span style="position:absolute;left:10px;top:9px;font-weight:700;color:var(--primary)">@</span>
+        <input type="text" id="regUsername" placeholder="e.g. transit_sam, alex_borda" maxlength="20" style="padding-left:26px" autocomplete="username">
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">3-20 letters, numbers & underscores</div>
+    </div>
+
     <div class="form-group">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <label class="form-label" style="margin-bottom:0" id="passLabel">Password</label>
@@ -1807,6 +1820,29 @@ body.dark-mode #toast {
     <div style="text-align:center;font-size:12px;color:var(--text-muted)">
       🔒 Verified student access for timetable edits & crowd updates
     </div>
+  </div>
+</div>
+
+<!-- EDIT PUBLIC USERNAME MODAL -->
+<div class="modal-overlay" id="usernameModal" onclick="if(event.target===this) closeUsernameModal()">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <div style="font-size:17px;font-weight:800">🏷️ Set Public Username</div>
+      <button class="icon-btn" onclick="closeUsernameModal()">✕</button>
+    </div>
+    <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px">
+      Your unique username is shown to other students when you add bus timings, verify schedules, or post community updates.
+    </div>
+    <div class="form-group">
+      <label class="form-label">Choose Username</label>
+      <div style="position:relative">
+        <span style="position:absolute;left:10px;top:9px;font-weight:700;color:var(--primary)">@</span>
+        <input type="text" id="editUsernameInp" placeholder="e.g. transit_king, priya_borda" maxlength="20" style="padding-left:26px">
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">3-20 characters: letters, numbers, and underscores only</div>
+    </div>
+    <button class="btn btn-block" id="btnSaveUsername" onclick="savePublicUsernameModal()" style="margin-bottom:8px">💾 Save Username</button>
+    <button class="btn btn-secondary btn-block" onclick="closeUsernameModal()">Cancel</button>
   </div>
 </div>
 
@@ -1862,19 +1898,19 @@ body.dark-mode #toast {
 const SEED = [
   { id:'s1',  busNo:'9424',      type:'general', from:'Varca',                    to:'ACMSR College',        time:'07:00', notes:'Morning via KTC',                                    addedBy:'student_1', verified:[] },
   { id:'s2',  busNo:'4209',      type:'general', from:'Varca',                    to:'ACMSR College',        time:'11:00', notes:'',                                                   addedBy:'student_1', verified:[] },
-  { id:'s3',  busNo:'9424',      type:'general', from:'Varca',                    to:'ACMSR College',        time:'11:15', notes:'',                                                   addedBy:'student_1', verified:['student_1','student_2','student_3','student_4','student_5'] },
+  { id:'s3',  busNo:'9424',      type:'general', from:'Varca',                    to:'ACMSR College',        time:'11:15', notes:'',                                                   addedBy:'student_1', verified:['@student_1','@student_2','@student_3','@student_4','@student_5'] },
   { id:'s4',  busNo:'1747',      type:'general', from:'Varca',                    to:'ACMSR College',        time:'11:44', notes:'Flacy Route',                                        addedBy:'student_1', verified:[] },
-  { id:'s5',  busNo:'?',         type:'general', from:'ACMSR College',            to:'Kamat Bus Stand',      time:'11:15', notes:'Bus no. not confirmed yet ✏️',                      addedBy:'student_1', verified:['student_1','student_2','student_3'] },
+  { id:'s5',  busNo:'?',         type:'general', from:'ACMSR College',            to:'Kamat Bus Stand',      time:'11:15', notes:'Bus no. not confirmed yet ✏️',                      addedBy:'student_1', verified:['@student_1','@student_2','@student_3'] },
   { id:'s6',  busNo:'?',         type:'general', from:'ACMSR College',            to:'Kamat Bus Stand',      time:'11:36', notes:'Bus no. not confirmed yet ✏️',                      addedBy:'student_1', verified:[] },
   { id:'s7',  busNo:'?',         type:'general', from:'ACMSR College',            to:'Kamat Bus Stand',      time:'12:30', notes:'Bus no. not confirmed yet ✏️',                      addedBy:'student_1', verified:[] },
-  { id:'s8',  busNo:'4209',      type:'general', from:'ACMSR College',            to:'Kamat Bus Stand',      time:'12:55', notes:'✅ Bus 4209 confirmed',                              addedBy:'student_1', verified:['student_1','student_2'] },
-  { id:'s9',  busNo:'?',         type:'general', from:'ACMSR College',            to:'Kamat Bus Stand',      time:'13:30', notes:'⭐ BEST — catch 1:42 or 2:10 PM Kamat→Mobor bus',  addedBy:'student_1', verified:['student_1','student_2','student_3','student_4','student_5','student_6'] },
+  { id:'s8',  busNo:'4209',      type:'general', from:'ACMSR College',            to:'Kamat Bus Stand',      time:'12:55', notes:'✅ Bus 4209 confirmed',                              addedBy:'student_1', verified:['@student_1','@student_2'] },
+  { id:'s9',  busNo:'?',         type:'general', from:'ACMSR College',            to:'Kamat Bus Stand',      time:'13:30', notes:'⭐ BEST — catch 1:42 or 2:10 PM Kamat→Mobor bus',  addedBy:'student_1', verified:['@student_1','@student_2','@student_3','@student_4','@student_5','@student_6'] },
   { id:'s10', busNo:'?',         type:'general', from:'ACMSR College',            to:'Kamat Bus Stand',      time:'14:40', notes:'Last College→Kamat bus',                            addedBy:'student_1', verified:[] },
   { id:'s11', busNo:'5463',      type:'general', from:'Kamat',                    to:'Varca',                time:'11:38', notes:'',                                                   addedBy:'student_1', verified:[] },
   { id:'s12', busNo:'9424',      type:'general', from:'Kamat',                    to:'Varca',                time:'12:47', notes:'',                                                   addedBy:'student_1', verified:[] },
   { id:'s13', busNo:'4209',      type:'general', from:'Kamat',                    to:'Varca',                time:'13:42', notes:'',                                                   addedBy:'student_1', verified:[] },
   { id:'s14', busNo:'1747',      type:'general', from:'Kamat',                    to:'Varca',                time:'13:50', notes:'⚡ Tight if catching 1:30 bus',                     addedBy:'student_1', verified:[] },
-  { id:'s15', busNo:'5463',      type:'general', from:'Kamat',                    to:'Varca',                time:'14:10', notes:'✅ Safe after 1:30 college bus',                    addedBy:'student_1', verified:['student_1','student_2','student_3'] },
+  { id:'s15', busNo:'5463',      type:'general', from:'Kamat',                    to:'Varca',                time:'14:10', notes:'✅ Safe after 1:30 college bus',                    addedBy:'student_1', verified:['@student_1','@student_2','@student_3'] },
   { id:'s16', busNo:'KTC',       type:'ktc',     from:'Varca',                    to:'KTC Bus Stand',        time:'07:00', notes:'Morning KTC service',                               addedBy:'student_1', verified:[] },
   { id:'s17', busNo:'KTC',       type:'ktc',     from:'KTC Bus Stand',            to:'Margao',               time:'08:30', notes:'',                                                   addedBy:'student_1', verified:[] },
   { id:'s18', busNo:'7721',      type:'general', from:'ACMSR College',            to:'Margao',               time:'13:00', notes:'Via Navelim',                                        addedBy:'student_1', verified:[] },
@@ -1956,10 +1992,26 @@ let timingsFilterKey = 'all';
 let currentTimingsView = 'cards';
 let deferredPWA = null;
 
-/* ── 3. UTILITY FUNCTIONS ─────────────────────────────────────── */
+/* ── 3. UTILITY & USERNAME FUNCTIONS ──────────────────────────── */
 function escapeHtml(text) {
   if (!text) return '';
   return String(text).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c] || c));
+}
+
+function getPublicUsername(user = currentUser) {
+  if (!user) return 'Student';
+  if (user.displayName && user.displayName.trim()) {
+    return user.displayName.trim().replace(/^@/, '');
+  }
+  const local = localStorage.getItem('collegebus_username_' + user.uid);
+  if (local) return local.replace(/^@/, '');
+  return (user.email ? user.email.split('@')[0] : 'student');
+}
+
+function formatHandle(name) {
+  if (!name) return '@student';
+  if (name.startsWith('@')) return name;
+  return '@' + name.split('@')[0];
 }
 
 function nowStr() {
@@ -2135,7 +2187,7 @@ async function autoCleanExpiredCommunityMessages() {
 async function forceSyncSeedToServer() {
   if (!currentUser) {
     toast('🔒 Please sign in as admin to force sync', 'err');
-    openAuthModal();
+    openAuthModal('signin');
     return;
   }
   toast('Syncing seed data to server...', '');
@@ -2187,7 +2239,7 @@ function initializeAppLogic() {
   }
 
   // Setup Enter key on Auth modal inputs
-  ['authEmail', 'authPass'].forEach(id => {
+  ['authEmail', 'authPass', 'regUsername'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('keydown', e => {
       if (e.key === 'Enter') {
@@ -2297,7 +2349,7 @@ function renderNextBusSpotlight() {
       <div class="nb-tags">
         <span class="nb-tag">🚌 #${escapeHtml(next.busNo)}</span>
         <span class="nb-tag" style="text-transform:uppercase">${escapeHtml(next.type||'general')}</span>
-        ${(next.verified||[]).length >= 3 ? `<span class="nb-tag">✔ Verified</span>` : ''}
+        ${(next.verified||[]).length >= 1 ? `<span class="nb-tag">✔ ${(next.verified||[]).length} Verified</span>` : ''}
         ${next.notes ? `<span class="nb-tag">📝 ${escapeHtml(next.notes)}</span>` : ''}
       </div>
     </div>`;
@@ -2355,11 +2407,20 @@ function renderSingleBusCardHTML(b, isPassed) {
   const typeLabels = { general:'General', ktc:'Kadamba KTC', private:'Private', express:'Express' };
   const typeName = typeLabels[b.type] || 'General';
   const isFav = favorites.some(f => f.from === b.from && f.to === b.to);
-  const verifyCount = (b.verified || []).length;
-  const isVerified = verifyCount >= 3;
+  const verifyList = b.verified || [];
+  const verifyCount = verifyList.length;
   const crowdVal = crowdCache[b.id] || '';
   const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
-  const isOwner = currentUser && b.addedBy === currentUser.email;
+  const myHandle = currentUser ? ('@' + getPublicUsername()) : '';
+  const isOwner = currentUser && (b.addedBy === currentUser.email || b.addedBy === myHandle || b.addedBy === ('@' + currentUser.email.split('@')[0]));
+
+  // Verified summary badge text
+  let verifySummaryBadge = '';
+  if (verifyCount > 0) {
+    const displayList = verifyList.map(formatHandle);
+    const shortNames = displayList.slice(0, 2).join(', ') + (verifyCount > 2 ? ` (+${verifyCount - 2})` : '');
+    verifySummaryBadge = `<span class="action-chip verified-badge" title="Verified by: ${escapeHtml(displayList.join(', '))}">✔ ${escapeHtml(shortNames)}</span>`;
+  }
 
   return `
     <div class="bus-card ${isPassed ? 'passed' : ''}" id="card_${b.id}">
@@ -2377,7 +2438,7 @@ function renderSingleBusCardHTML(b, isPassed) {
           <div class="card-meta-row">
             <span class="bus-pill">#${escapeHtml(b.busNo)}</span>
             <span class="type-pill type-${b.type || 'general'}">${typeName}</span>
-            ${isVerified ? `<span class="action-chip verified-badge">✔ ${verifyCount} Verified</span>` : ''}
+            ${verifySummaryBadge}
           </div>
         </div>
       </div>
@@ -2396,7 +2457,7 @@ function renderSingleBusCardHTML(b, isPassed) {
           <button class="action-chip ${isFav ? 'fav-active' : ''}" onclick="toggleFavRoute('${escapeHtml(b.from)}','${escapeHtml(b.to)}')" title="Save Route">
             ${isFav ? '⭐ Saved' : '☆ Save'}
           </button>
-          <button class="action-chip" onclick="verifyBusTiming('${b.id}')" title="Verify Timing">✔</button>
+          <button class="action-chip" onclick="verifyBusTiming('${b.id}')" title="Verify this bus timing with your username">✔ Verify</button>
           <button class="action-chip" onclick="shareBusDetails('${escapeHtml(b.from)}','${escapeHtml(b.to)}','${fmt(b.time)}','${escapeHtml(b.busNo)}')" title="Share">📤</button>
           <button class="action-chip" onclick="toggleCardDetails('${b.id}')" title="Notes & Updates">💬</button>
           ${(isAdmin || isOwner) ? `<button class="action-chip" onclick="openEditModal('${b.id}')" title="Edit">✏️</button>` : ''}
@@ -2409,7 +2470,7 @@ function renderSingleBusCardHTML(b, isPassed) {
           Loading live student notes...
         </div>
         <div class="comment-input-row">
-          <input type="text" id="inputComment_${b.id}" placeholder="Write live bus update..." maxlength="80">
+          <input type="text" id="inputComment_${b.id}" placeholder="Write live update as @${getPublicUsername()}..." maxlength="80">
           <button class="btn btn-sm" onclick="postCardComment('${b.id}')">Post</button>
         </div>
       </div>
@@ -2446,7 +2507,8 @@ async function loadBusComments(busId) {
       return;
     }
     listEl.innerHTML = validComments.map(c => {
-      return `<div style="padding:3px 0"><strong>${escapeHtml(c.name||'Student')}:</strong> ${escapeHtml(c.message)} <span style="opacity:0.6;font-size:10.5px">· ${ago(c.ts)}</span></div>`;
+      const handle = formatHandle(c.name || 'student');
+      return `<div style="padding:3px 0"><strong style="color:var(--primary)">${escapeHtml(handle)}:</strong> ${escapeHtml(c.message)} <span style="opacity:0.6;font-size:10.5px">· ${ago(c.ts)}</span></div>`;
     }).join('');
   } catch(e) {
     listEl.innerHTML = '<div style="padding:4px 0">Could not load comments.</div>';
@@ -2462,16 +2524,16 @@ async function postCardComment(busId) {
   const inp = document.getElementById('inputComment_' + busId);
   const msg = inp.value.trim();
   if (!msg) return;
-  const name = currentUser.displayName || currentUser.email.split('@')[0];
+  const name = '@' + getPublicUsername();
   
   if (window.FB && window.FB.db) {
     try {
       await window.FB.addDoc(window.FB.collection(window.FB.db, 'comments'), {
-        busId, message: msg, name, ts: Date.now()
+        busId, message: msg, name, uid: currentUser.uid, ts: Date.now()
       });
       inp.value = '';
       loadBusComments(busId);
-      toast('💬 Update posted!', 'ok');
+      toast('💬 Update posted as ' + name + '!', 'ok');
       return;
     } catch(e) {
       console.warn('[CollegeBus] Comment post error:', e);
@@ -2571,14 +2633,18 @@ function renderTimingsView() {
       list = list.filter(b => b.from.toLowerCase().includes(f.toLowerCase().trim()) && b.to.toLowerCase().includes(t.toLowerCase().trim()));
     }
     const tbody = document.getElementById('timingsTableBody');
-    tbody.innerHTML = list.map(b => `
-      <tr>
-        <td style="font-weight:800;color:var(--primary)">${fmt(b.time)}</td>
-        <td><strong>${escapeHtml(b.from)}</strong> → ${escapeHtml(b.to)}</td>
-        <td><span class="bus-pill">#${escapeHtml(b.busNo)}</span></td>
-        <td><span class="type-pill type-${b.type||'general'}">${escapeHtml(b.type||'general')}</span></td>
-        <td>${(b.verified||[]).length >= 3 ? '✔ ' + b.verified.length : (b.verified||[]).length}</td>
-      </tr>`).join('');
+    tbody.innerHTML = list.map(b => {
+      const vList = (b.verified||[]).map(formatHandle);
+      const vText = vList.length > 0 ? `✔ ${vList.slice(0,2).join(', ')}` : '0';
+      return `
+        <tr>
+          <td style="font-weight:800;color:var(--primary)">${fmt(b.time)}</td>
+          <td><strong>${escapeHtml(b.from)}</strong> → ${escapeHtml(b.to)}</td>
+          <td><span class="bus-pill">#${escapeHtml(b.busNo)}</span></td>
+          <td><span class="type-pill type-${b.type||'general'}">${escapeHtml(b.type||'general')}</span></td>
+          <td><span title="Verified by: ${escapeHtml(vList.join(', '))}">${escapeHtml(vText)}</span></td>
+        </tr>`;
+    }).join('');
   }
 }
 
@@ -2691,7 +2757,7 @@ function renderAlertsFeed() {
     <div class="bus-card" style="border-left:4px solid ${a.type==='danger'?'var(--red)':a.type==='success'?'var(--primary)':'var(--amber)'}">
       <div style="font-size:13.5px;font-weight:700">${icons[a.type]||'📌'} ${escapeHtml(a.message)}</div>
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px">
-        Reported by ${escapeHtml((a.addedBy||'student').split('@')[0])} · ${ago(a.ts)}
+        Reported by <strong style="color:var(--primary)">${escapeHtml(formatHandle(a.addedBy))}</strong> · ${ago(a.ts)}
       </div>
     </div>`).join('');
 }
@@ -2702,7 +2768,7 @@ function renderLeaderboard() {
 
   const counts = {};
   buses.forEach(b => {
-    const user = b.addedBy || 'community';
+    const user = b.addedBy ? formatHandle(b.addedBy) : '@community';
     counts[user] = (counts[user] || 0) + 1;
   });
 
@@ -2713,7 +2779,7 @@ function renderLeaderboard() {
     <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:16px">${medals[i]}</span>
-        <span style="font-size:13px;font-weight:700">${escapeHtml(usr.split('@')[0])}</span>
+        <span style="font-size:13px;font-weight:700">${escapeHtml(usr)}</span>
       </div>
       <span style="font-size:12px;color:var(--primary);font-weight:800">${count} timings</span>
     </div>`).join('');
@@ -2742,13 +2808,13 @@ async function submitNewTiming() {
     return;
   }
 
-  const addedBy = currentUser.email;
-  const newBus = { busNo, type, from, to, time, notes, addedBy, verified: [], ts: Date.now() };
+  const addedBy = '@' + getPublicUsername();
+  const newBus = { busNo, type, from, to, time, notes, addedBy, uid: currentUser.uid, verified: [addedBy], ts: Date.now() };
 
   if (window.FB && window.FB.db && navigator.onLine) {
     try {
       await window.FB.addDoc(window.FB.collection(window.FB.db, 'bus_timings'), newBus);
-      toast('✅ Bus timing saved to cloud!', 'ok');
+      toast('✅ Bus timing saved as ' + addedBy + '!', 'ok');
     } catch(e) {
       newBus.id = 'local_' + Date.now();
       buses.push(newBus);
@@ -2775,13 +2841,13 @@ async function submitAlert() {
   const message = document.getElementById('postAlertMsg').value.trim();
   if (!message) { toast('Please enter an alert message', 'err'); return; }
 
-  const addedBy = currentUser.email;
-  const alertObj = { type, message, addedBy, ts: Date.now() };
+  const addedBy = '@' + getPublicUsername();
+  const alertObj = { type, message, addedBy, uid: currentUser.uid, ts: Date.now() };
 
   if (window.FB && window.FB.db && navigator.onLine) {
     try {
       await window.FB.addDoc(window.FB.collection(window.FB.db, 'alerts'), alertObj);
-      toast('📢 Alert broadcasted!', 'ok');
+      toast('📢 Alert broadcasted as ' + addedBy + '!', 'ok');
     } catch(e) {
       alerts.unshift(alertObj);
       toast('📢 Posted locally', 'ok');
@@ -2804,23 +2870,24 @@ async function verifyBusTiming(busId) {
   }
   const bus = buses.find(b => b.id === busId);
   if (!bus) return;
-  const userIdentifier = currentUser.email;
+  const myHandle = '@' + getPublicUsername();
+  const myEmail = currentUser.email;
 
   if (!bus.verified) bus.verified = [];
-  if (bus.verified.includes(userIdentifier)) {
+  if (bus.verified.includes(myHandle) || bus.verified.includes(myEmail) || bus.verified.includes(currentUser.uid)) {
     toast('You already verified this bus timing', '');
     return;
   }
 
-  bus.verified.push(userIdentifier);
+  bus.verified.push(myHandle);
   if (window.FB && window.FB.db && !busId.startsWith('s') && navigator.onLine) {
     try {
       await window.FB.updateDoc(window.FB.doc(window.FB.db, 'bus_timings', busId), {
-        verified: window.FB.arrayUnion(userIdentifier)
+        verified: window.FB.arrayUnion(myHandle)
       });
     } catch(e) {}
   }
-  toast('✔ Timing verified! Thank you.', 'ok');
+  toast('✔ Verified as ' + myHandle + '! Thank you.', 'ok');
   renderAllViews();
 }
 
@@ -2930,16 +2997,31 @@ async function saveBusEdit() {
   renderAllViews();
 }
 
-/* ── 13. AUTHENTICATION (UNIFIED FOOLPROOF SYSTEM) ─────────────── */
+/* ── 13. AUTHENTICATION & UNIQUE USERNAME FLOW ────────────────── */
 function setupAuthListener() {
   if (!window.FB || !window.FB.auth) {
     window._onFirebaseReady = setupAuthListener;
     window.addEventListener('firebase-ready', setupAuthListener);
     return;
   }
-  window.FB.onAuthStateChanged(window.FB.auth, user => {
+  window.FB.onAuthStateChanged(window.FB.auth, async user => {
     console.log('[CollegeBus Auth State]:', user ? `Logged in as ${user.email}` : 'Logged out (Guest)');
     currentUser = user;
+    
+    // Fetch profile username from Firestore if present
+    if (user && window.FB.db) {
+      try {
+        const userDoc = await window.FB.getDoc(window.FB.doc(window.FB.db, 'users', user.uid));
+        if (userDoc.exists() && userDoc.data().username) {
+          const uName = userDoc.data().username;
+          localStorage.setItem('collegebus_username_' + user.uid, uName);
+          if (!user.displayName && window.FB.updateProfile) {
+            window.FB.updateProfile(user, { displayName: uName }).catch(() => {});
+          }
+        }
+      } catch (e) {}
+    }
+
     updateUserAuthUI();
     if (user) {
       autoFetchAndSyncSeed();
@@ -2953,18 +3035,21 @@ function updateUserAuthUI() {
   const avatar = document.getElementById('userAvatar');
   const loggedIn = document.getElementById('loggedInButtons');
   const loggedOut = document.getElementById('loggedOutButtons');
+  const editUsernameBtn = document.getElementById('editUsernameBtn');
   const adminBox = document.getElementById('adminPanelBox');
 
   if (currentUser) {
-    const name = currentUser.displayName || currentUser.email.split('@')[0];
-    if (nameLabel) nameLabel.textContent = name;
+    const handle = getPublicUsername(currentUser);
+    if (nameLabel) nameLabel.textContent = '@' + handle;
     if (emailLabel) emailLabel.textContent = currentUser.email;
-    if (avatar) avatar.textContent = name[0].toUpperCase();
+    if (avatar) avatar.textContent = handle[0].toUpperCase();
     if (loggedIn) loggedIn.style.display = 'block';
     if (loggedOut) loggedOut.style.display = 'none';
+    if (editUsernameBtn) editUsernameBtn.style.display = 'inline-block';
 
-    const added = buses.filter(b => b.addedBy === currentUser.email).length;
-    const verified = buses.filter(b => (b.verified||[]).includes(currentUser.email)).length;
+    const myH = '@' + handle;
+    const added = buses.filter(b => b.addedBy === currentUser.email || b.addedBy === myH || b.uid === currentUser.uid).length;
+    const verified = buses.filter(b => (b.verified||[]).includes(myH) || (b.verified||[]).includes(currentUser.email)).length;
     const statA = document.getElementById('userStatAdded');
     const statV = document.getElementById('userStatVerified');
     if (statA) statA.textContent = added;
@@ -2980,6 +3065,7 @@ function updateUserAuthUI() {
     if (avatar) avatar.textContent = '?';
     if (loggedIn) loggedIn.style.display = 'none';
     if (loggedOut) loggedOut.style.display = 'block';
+    if (editUsernameBtn) editUsernameBtn.style.display = 'none';
     if (adminBox) adminBox.style.display = 'none';
   }
 }
@@ -2990,6 +3076,7 @@ function setAuthMode(mode) {
   const tabReg = document.getElementById('tabBtnRegister');
   const actIn = document.getElementById('authActionsSignIn');
   const actReg = document.getElementById('authActionsRegister');
+  const regUserGroup = document.getElementById('regUsernameGroup');
   const forgotLink = document.getElementById('forgotPassLink');
   const passLabel = document.getElementById('passLabel');
 
@@ -2998,6 +3085,7 @@ function setAuthMode(mode) {
     if (tabReg) tabReg.classList.add('active');
     if (actIn) actIn.style.display = 'none';
     if (actReg) actReg.style.display = 'block';
+    if (regUserGroup) regUserGroup.style.display = 'block';
     if (forgotLink) forgotLink.style.display = 'none';
     if (passLabel) passLabel.textContent = 'Create Password (min 6 chars)';
   } else {
@@ -3005,6 +3093,7 @@ function setAuthMode(mode) {
     if (tabReg) tabReg.classList.remove('active');
     if (actIn) actIn.style.display = 'block';
     if (actReg) actReg.style.display = 'none';
+    if (regUserGroup) regUserGroup.style.display = 'none';
     if (forgotLink) forgotLink.style.display = 'inline';
     if (passLabel) passLabel.textContent = 'Password';
   }
@@ -3034,6 +3123,85 @@ function togglePasswordVisibility() {
     passInp.type = 'password';
     if (toggleBtn) toggleBtn.textContent = '👁️';
   }
+}
+
+async function checkUsernameAvailability(rawUsername, currentUid) {
+  if (!window.FB || !window.FB.db) return true;
+  const cleanLower = rawUsername.trim().toLowerCase().replace(/^@/, '');
+  try {
+    const { collection, query, where, getDocs } = window.FB;
+    const q = query(collection(window.FB.db, 'users'), where('username_lower', '==', cleanLower));
+    const snap = await getDocs(q);
+    if (snap.empty) return true;
+    return snap.docs.some(d => d.id === currentUid);
+  } catch (e) {
+    console.warn('[CollegeBus] Username uniqueness check:', e);
+    return true;
+  }
+}
+
+async function setPublicUsername(chosenUsername) {
+  if (!currentUser) return false;
+  const clean = chosenUsername.trim().replace(/^@/, '');
+  const cleanLower = clean.toLowerCase();
+  
+  if (!/^[a-zA-Z0-9_]{3,20}$/.test(clean)) {
+    toast('Username must be 3-20 characters (letters, numbers, underscores)', 'err');
+    return false;
+  }
+
+  if (window.FB && window.FB.db) {
+    const available = await checkUsernameAvailability(cleanLower, currentUser.uid);
+    if (!available) {
+      toast('⚠️ @"' + clean + '" is already taken by another student! Pick another.', 'err');
+      return false;
+    }
+    try {
+      const { doc, setDoc } = window.FB;
+      await setDoc(doc(window.FB.db, 'users', currentUser.uid), {
+        username: clean,
+        username_lower: cleanLower,
+        email: currentUser.email,
+        updatedAt: Date.now()
+      }, { merge: true });
+    } catch (e) {
+      console.warn('[CollegeBus] Error writing username to users collection:', e);
+    }
+  }
+
+  if (window.FB && window.FB.updateProfile) {
+    try {
+      await window.FB.updateProfile(currentUser, { displayName: clean });
+    } catch(e) {}
+  }
+
+  localStorage.setItem('collegebus_username_' + currentUser.uid, clean);
+  updateUserAuthUI();
+  toast('✅ Public username set to @' + clean, 'ok');
+  return true;
+}
+
+function openUsernameModal() {
+  const inp = document.getElementById('editUsernameInp');
+  if (inp && currentUser) inp.value = getPublicUsername(currentUser);
+  document.getElementById('usernameModal').classList.add('open');
+}
+function closeUsernameModal() {
+  document.getElementById('usernameModal').classList.remove('open');
+}
+
+async function savePublicUsernameModal() {
+  const inp = document.getElementById('editUsernameInp');
+  const btn = document.getElementById('btnSaveUsername');
+  const val = inp ? inp.value.trim() : '';
+  if (!val) { toast('Please enter a username', 'err'); return; }
+
+  const originalText = btn ? btn.innerHTML : '💾 Save Username';
+  if (btn) { btn.innerHTML = 'Checking...'; btn.disabled = true; }
+
+  const ok = await setPublicUsername(val);
+  if (btn) { btn.innerHTML = originalText; btn.disabled = false; }
+  if (ok) closeUsernameModal();
 }
 
 function parseAuthError(e) {
@@ -3090,7 +3258,7 @@ async function doEmailLogin() {
   try {
     const cred = await window.FB.signInWithEmailAndPassword(window.FB.auth, email, pass);
     closeAuthModal();
-    toast('✅ Welcome back, ' + (cred.user.displayName || email.split('@')[0]) + '!', 'ok');
+    toast('✅ Welcome back, @' + getPublicUsername(cred.user) + '!', 'ok');
   } catch(e) {
     console.error('[CollegeBus Auth Error]:', e);
     toast(parseAuthError(e), 'err');
@@ -3102,11 +3270,18 @@ async function doEmailLogin() {
 async function doRegister() {
   const emailInp = document.getElementById('authEmail');
   const passInp = document.getElementById('authPass');
+  const userInp = document.getElementById('regUsername');
   const btn = document.getElementById('btnSubmitRegister');
   const email = (emailInp.value || '').trim().toLowerCase();
   const pass = passInp.value || '';
+  const chosenUsername = userInp ? userInp.value.trim().replace(/^@/, '') : '';
 
   if (!email) { toast('Please enter your email to register', 'err'); emailInp.focus(); return; }
+  if (chosenUsername && !/^[a-zA-Z0-9_]{3,20}$/.test(chosenUsername)) {
+    toast('Username must be 3-20 letters, numbers & underscores only', 'err');
+    userInp.focus();
+    return;
+  }
   if (!pass) { toast('Please choose a password', 'err'); passInp.focus(); return; }
   if (pass.length < 6) { toast('Password must be at least 6 characters', 'err'); passInp.focus(); return; }
 
@@ -3119,9 +3294,25 @@ async function doRegister() {
   if (btn) { btn.innerHTML = 'Creating account...'; btn.disabled = true; }
 
   try {
+    // Check username uniqueness first if provided
+    if (chosenUsername) {
+      const isFree = await checkUsernameAvailability(chosenUsername, '');
+      if (!isFree) {
+        toast('⚠️ @"' + chosenUsername + '" is already taken! Please pick another username.', 'err');
+        if (btn) { btn.innerHTML = originalText; btn.disabled = false; }
+        userInp.focus();
+        return;
+      }
+    }
+
     const cred = await window.FB.createUserWithEmailAndPassword(window.FB.auth, email, pass);
+    
+    // Set custom username or default to email handle
+    const initialHandle = chosenUsername || email.split('@')[0];
+    await setPublicUsername(initialHandle);
+
     closeAuthModal();
-    toast('🎓 Account created! Welcome, ' + email.split('@')[0] + '!', 'ok');
+    toast('🎓 Account created! Welcome, @' + initialHandle + '!', 'ok');
   } catch(e) {
     console.error('[CollegeBus Registration Error]:', e);
     toast(parseAuthError(e), 'err');
@@ -3168,8 +3359,15 @@ async function doGoogleLogin() {
     const provider = new window.FB.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
     const cred = await window.FB.signInWithPopup(window.FB.auth, provider);
+    
+    // Ensure user has public username
+    if (!cred.user.displayName) {
+      const defaultHandle = cred.user.email.split('@')[0];
+      await setPublicUsername(defaultHandle);
+    }
+
     closeAuthModal();
-    toast('✅ Google login successful! Hello ' + (cred.user.displayName || 'Student'), 'ok');
+    toast('✅ Google login successful! Hello @' + getPublicUsername(cred.user), 'ok');
   } catch(e) {
     console.error('[CollegeBus Google Auth Error]:', e);
     toast(parseAuthError(e), 'err');
@@ -3239,6 +3437,10 @@ window.doEmailLogin = doEmailLogin;
 window.doRegister = doRegister;
 window.doPasswordReset = doPasswordReset;
 window.togglePasswordVisibility = togglePasswordVisibility;
+window.openUsernameModal = openUsernameModal;
+window.closeUsernameModal = closeUsernameModal;
+window.savePublicUsernameModal = savePublicUsernameModal;
+window.setPublicUsername = setPublicUsername;
 window.doGoogleLogin = doGoogleLogin;
 window.doLogout = doLogout;
 window.openAuthModal = openAuthModal;
