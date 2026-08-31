@@ -4,10 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#10B981">
-<meta name="description" content="CampusBus – Simple, fast, community-powered bus tracker for CMSR College and Goa students">
+<meta name="description" content="CampusBus – Simple, fast, community-powered bus tracker for ACMSR College and Goa students">
 <link rel="manifest" href="manifest.json">
-<title>College Bus Tracker</title>
-
+<title>CampusBus – ACMSR Transit Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -21,7 +20,7 @@
   import { getFirestore, collection, addDoc, query, where,
            orderBy, onSnapshot, updateDoc, getDoc, getDocs,
            doc, arrayUnion, deleteDoc, setDoc,
-           increment, serverTimestamp, enableIndexedDbPersistence }
+           increment, serverTimestamp }
                                      from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
   import { getAuth, onAuthStateChanged, signOut,
            signInWithEmailAndPassword, createUserWithEmailAndPassword,
@@ -46,12 +45,8 @@
   let analytics = null;
   isSupported().then(yes => { if (yes) analytics = getAnalytics(app); }).catch(() => {});
 
-  try {
-    enableIndexedDbPersistence(db).catch(() => {});
-  } catch(e) {}
-
   window.FB = {
-    db, auth,
+    app, db, auth, analytics,
     collection, addDoc, query, where, orderBy, onSnapshot,
     updateDoc, getDoc, getDocs, doc, arrayUnion, deleteDoc,
     setDoc, increment, serverTimestamp,
@@ -60,6 +55,10 @@
     ready: true
   };
 
+  console.log('[CampusBus] Firebase SDK initialized successfully');
+  if (typeof window._onFirebaseReady === 'function') {
+    window._onFirebaseReady();
+  }
   window.dispatchEvent(new CustomEvent('firebase-ready'));
 </script>
 
@@ -1651,15 +1650,16 @@ body.dark-mode #toast {
     <div id="loginFormArea">
       <div class="form-group">
         <label class="form-label">Email</label>
-        <input type="email" id="authEmail" placeholder="yourname@gmail.com">
+        <input type="email" id="authEmail" placeholder="yourname@gmail.com" autocomplete="email">
       </div>
       <div class="form-group">
         <label class="form-label">Password</label>
-        <input type="password" id="authPass" placeholder="Password">
+        <input type="password" id="authPass" placeholder="Password" autocomplete="current-password">
       </div>
-      <button class="btn btn-block" onclick="doEmailLogin()" style="margin-bottom:8px">🔑 Sign In</button>
-      <button class="btn btn-secondary btn-block" onclick="doGoogleLogin()" style="margin-bottom:12px">
-        🌐 Continue with Google
+      <button class="btn btn-block" id="btnEmailLogin" onclick="doEmailLogin()" style="margin-bottom:8px">🔑 Sign In</button>
+      <button class="btn btn-secondary btn-block" id="btnGoogleLogin" onclick="doGoogleLogin()" style="margin-bottom:12px">
+        <svg width="16" height="16" viewBox="0 0 48 48" style="margin-right:6px"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.7 33.1 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9l6-6C34.5 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-4z"/><path fill="#FF3D00" d="m6.3 14.7 7 5.1C15.1 16.1 19.2 13 24 13c3 0 5.8 1.1 7.9 2.9l6-6C34.5 6.1 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-1.9 13.7-5.1l-6.3-5.3C29.5 35.3 26.9 36 24 36c-5.2 0-9.6-2.9-11.3-7l-7 5.4C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.7 2.1-2 3.9-3.7 5.2l6.4 5.3C41.7 35 44 30 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
+        Continue with Google
       </button>
       <div style="text-align:center;font-size:12.5px;color:var(--text-muted)">
         Don't have an account? <a href="javascript:void(0)" onclick="toggleAuthForm(true)" style="color:var(--primary);font-weight:700">Register</a>
@@ -1668,15 +1668,16 @@ body.dark-mode #toast {
     <div id="registerFormArea" style="display:none">
       <div class="form-group">
         <label class="form-label">Email</label>
-        <input type="email" id="regEmail" placeholder="yourname@gmail.com">
+        <input type="email" id="regEmail" placeholder="yourname@gmail.com" autocomplete="email">
       </div>
       <div class="form-group">
         <label class="form-label">Password (min 6 chars)</label>
-        <input type="password" id="regPass" placeholder="Create password">
+        <input type="password" id="regPass" placeholder="Create password" autocomplete="new-password">
       </div>
-      <button class="btn btn-block" onclick="doRegister()" style="margin-bottom:8px">🎓 Create Account</button>
+      <button class="btn btn-block" id="btnRegister" onclick="doRegister()" style="margin-bottom:8px">🎓 Create Account</button>
       <button class="btn btn-secondary btn-block" onclick="doGoogleLogin()" style="margin-bottom:12px">
-        🌐 Sign up with Google
+        <svg width="16" height="16" viewBox="0 0 48 48" style="margin-right:6px"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.7 33.1 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9l6-6C34.5 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-4z"/><path fill="#FF3D00" d="m6.3 14.7 7 5.1C15.1 16.1 19.2 13 24 13c3 0 5.8 1.1 7.9 2.9l6-6C34.5 6.1 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-1.9 13.7-5.1l-6.3-5.3C29.5 35.3 26.9 36 24 36c-5.2 0-9.6-2.9-11.3-7l-7 5.4C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.7 2.1-2 3.9-3.7 5.2l6.4 5.3C41.7 35 44 30 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
+        Sign up with Google
       </button>
       <div style="text-align:center;font-size:12.5px;color:var(--text-muted)">
         Already registered? <a href="javascript:void(0)" onclick="toggleAuthForm(false)" style="color:var(--primary);font-weight:700">Login</a>
@@ -1870,15 +1871,17 @@ function ago(ts) {
 let toastTimer;
 function toast(msg, type = '') {
   const el = document.getElementById('toast');
+  if (!el) return;
   el.textContent = msg;
   el.className = 'show' + (type ? ' ' + type : '');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.className = ''; }, 3000);
+  toastTimer = setTimeout(() => { el.className = ''; }, 3500);
 }
 
 function updateCloudSyncStatus(status, count = 0) {
   const dot = document.getElementById('cloudDot');
   const label = document.getElementById('cloudLabel');
+  if (!dot || !label) return;
   if (status === 'synced') {
     dot.className = 'dot online';
     label.textContent = count > 0 ? `Synced (+${count})` : 'Cloud Synced';
@@ -1917,7 +1920,7 @@ async function autoFetchAndSyncSeed() {
       renderAllViews();
       updateAdminCounts();
     }, err => {
-      console.warn('Firestore realtime listener fallback to seed:', err);
+      console.warn('[CampusBus] Realtime listener error:', err);
     });
 
     // 2. Query existing server entries to detect missing seed entries
@@ -1967,19 +1970,24 @@ async function autoFetchAndSyncSeed() {
 
     updateCloudSyncStatus('synced', uploadedCount);
   } catch (err) {
-    console.warn('Server sync completed with local fallback:', err);
+    console.warn('[CampusBus] Server sync completed with local fallback:', err);
     updateCloudSyncStatus('local');
   }
 }
 
 async function forceSyncSeedToServer() {
+  if (!currentUser) {
+    toast('🔒 Please sign in as admin to force sync', 'err');
+    openAuthModal();
+    return;
+  }
   toast('Syncing seed data to server...', '');
   await autoFetchAndSyncSeed();
   toast('✅ Seed data synced to server!', 'ok');
 }
 
 /* ── 5. INITIALIZATION ────────────────────────────────────────── */
-window.addEventListener('load', () => {
+function initializeAppLogic() {
   initTheme();
   updateClock();
   setInterval(updateClock, 30000);
@@ -2010,28 +2018,44 @@ window.addEventListener('load', () => {
   // Setup Search Input auto-listeners
   const fInp = document.getElementById('searchFrom');
   const tInp = document.getElementById('searchTo');
-  const doLiveFilter = () => {
-    const f = fInp.value.trim();
-    const t = tInp.value.trim();
-    if (f || t) executeSearch(f, t);
-    else document.getElementById('searchResultArea').style.display = 'none';
-  };
-  fInp.addEventListener('input', doLiveFilter);
-  tInp.addEventListener('input', doLiveFilter);
+  if (fInp && tInp) {
+    const doLiveFilter = () => {
+      const f = fInp.value.trim();
+      const t = tInp.value.trim();
+      if (f || t) executeSearch(f, t);
+      else document.getElementById('searchResultArea').style.display = 'none';
+    };
+    fInp.addEventListener('input', doLiveFilter);
+    tInp.addEventListener('input', doLiveFilter);
+  }
 
-  // Check Firebase
-  if (window.FB && window.FB.ready) setupAuthListener();
-  else window.addEventListener('firebase-ready', setupAuthListener);
+  // Setup Enter key on Auth modal inputs
+  ['authEmail', 'authPass'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') doEmailLogin(); });
+  });
+  ['regEmail', 'regPass'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') doRegister(); });
+  });
 
-  setTimeout(autoFetchAndSyncSeed, 500);
-});
+  setupAuthListener();
+  setTimeout(autoFetchAndSyncSeed, 300);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeAppLogic);
+} else {
+  initializeAppLogic();
+}
 
 function updateClock() {
   const now = new Date();
   const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
   const ist = new Date(utcMs + 5.5 * 3600000);
   const dateStr = ist.toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short' });
-  document.getElementById('dateChip').textContent = `📅 ${dateStr} · ${nowIST12()} IST`;
+  const chip = document.getElementById('dateChip');
+  if (chip) chip.textContent = `📅 ${dateStr} · ${nowIST12()} IST`;
   renderNextBusSpotlight();
   renderUpcomingCarousel();
 }
@@ -2236,6 +2260,7 @@ function renderSingleBusCardHTML(b, isPassed) {
 
 function toggleCardDetails(busId) {
   const drawer = document.getElementById('drawer_' + busId);
+  if (!drawer) return;
   drawer.classList.toggle('open');
   if (drawer.classList.contains('open')) {
     loadBusComments(busId);
@@ -2244,6 +2269,7 @@ function toggleCardDetails(busId) {
 
 async function loadBusComments(busId) {
   const listEl = document.getElementById('commentList_' + busId);
+  if (!listEl) return;
   if (!window.FB || !window.FB.db) {
     listEl.innerHTML = '<div style="padding:4px 0">No live updates yet.</div>';
     return;
@@ -2285,7 +2311,9 @@ async function postCardComment(busId) {
       loadBusComments(busId);
       toast('💬 Update posted!', 'ok');
       return;
-    } catch(e) {}
+    } catch(e) {
+      console.warn('[CampusBus] Comment post error:', e);
+    }
   }
   toast('💬 Update saved locally!', 'ok');
   inp.value = '';
@@ -2740,10 +2768,15 @@ async function saveBusEdit() {
   renderAllViews();
 }
 
-/* ── 13. AUTHENTICATION ───────────────────────────────────────── */
+/* ── 13. AUTHENTICATION (ENHANCED DIAGNOSTICS) ────────────────── */
 function setupAuthListener() {
-  if (!window.FB) return;
+  if (!window.FB || !window.FB.auth) {
+    window._onFirebaseReady = setupAuthListener;
+    window.addEventListener('firebase-ready', setupAuthListener);
+    return;
+  }
   window.FB.onAuthStateChanged(window.FB.auth, user => {
+    console.log('[CampusBus Auth State]:', user ? `Logged in as ${user.email}` : 'Logged out (Guest)');
     currentUser = user;
     updateUserAuthUI();
     if (user) {
@@ -2762,32 +2795,40 @@ function updateUserAuthUI() {
 
   if (currentUser) {
     const name = currentUser.displayName || currentUser.email.split('@')[0];
-    nameLabel.textContent = name;
-    emailLabel.textContent = currentUser.email;
-    avatar.textContent = name[0].toUpperCase();
-    loggedIn.style.display = 'block';
-    loggedOut.style.display = 'none';
+    if (nameLabel) nameLabel.textContent = name;
+    if (emailLabel) emailLabel.textContent = currentUser.email;
+    if (avatar) avatar.textContent = name[0].toUpperCase();
+    if (loggedIn) loggedIn.style.display = 'block';
+    if (loggedOut) loggedOut.style.display = 'none';
 
     const added = buses.filter(b => b.addedBy === currentUser.email).length;
     const verified = buses.filter(b => (b.verified||[]).includes(currentUser.email)).length;
-    document.getElementById('userStatAdded').textContent = added;
-    document.getElementById('userStatVerified').textContent = verified;
+    const statA = document.getElementById('userStatAdded');
+    const statV = document.getElementById('userStatVerified');
+    if (statA) statA.textContent = added;
+    if (statV) statV.textContent = verified;
 
-    if (currentUser.email === ADMIN_EMAIL) {
+    if (currentUser.email === ADMIN_EMAIL && adminBox) {
       adminBox.style.display = 'block';
       updateAdminCounts();
     }
   } else {
-    nameLabel.textContent = 'Guest User';
-    emailLabel.textContent = 'Not logged in';
-    avatar.textContent = '?';
-    loggedIn.style.display = 'none';
-    loggedOut.style.display = 'block';
-    adminBox.style.display = 'none';
+    if (nameLabel) nameLabel.textContent = 'Guest User';
+    if (emailLabel) emailLabel.textContent = 'Not logged in';
+    if (avatar) avatar.textContent = '?';
+    if (loggedIn) loggedIn.style.display = 'none';
+    if (loggedOut) loggedOut.style.display = 'block';
+    if (adminBox) adminBox.style.display = 'none';
   }
 }
 
-function openAuthModal() { document.getElementById('authModal').classList.add('open'); }
+function openAuthModal() {
+  document.getElementById('authModal').classList.add('open');
+  setTimeout(() => {
+    const inp = document.getElementById('authEmail');
+    if (inp) inp.focus();
+  }, 100);
+}
 function closeAuthModal() { document.getElementById('authModal').classList.remove('open'); }
 function toggleAuthForm(isRegister) {
   document.getElementById('loginFormArea').style.display = isRegister ? 'none' : 'block';
@@ -2807,11 +2848,8 @@ function parseAuthError(e) {
   if (code === 'auth/configuration-not-found' || code.includes('configuration-not-found')) {
     return '❌ Authentication not initialized in Firebase Console for project zevbuild.';
   }
-  if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
-    return '❌ Invalid email or password, or user not found. Please register if new!';
-  }
-  if (code === 'auth/wrong-password') {
-    return '❌ Incorrect password.';
+  if (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
+    return '❌ Invalid email or password. Please register if you are new!';
   }
   if (code === 'auth/email-already-in-use') {
     return '❌ Email already registered. Please sign in instead.';
@@ -2820,57 +2858,99 @@ function parseAuthError(e) {
     return '❌ Password too weak (minimum 6 characters required).';
   }
   if (code === 'auth/popup-closed-by-user') {
-    return '⚠️ Google sign-in cancelled.';
+    return '⚠️ Google sign-in was cancelled.';
   }
   if (code === 'auth/popup-blocked') {
-    return '⚠️ Popup blocked by browser. Please allow popups.';
+    return '⚠️ Popup blocked by browser. Please allow popups for Google sign-in.';
   }
   return '❌ ' + (msg.replace('Firebase: ', '').replace(/\(auth\/.*\)/, '').trim() || 'Authentication failed');
 }
 
 async function doEmailLogin() {
-  const email = document.getElementById('authEmail').value.trim();
-  const pass = document.getElementById('authPass').value;
+  const emailInp = document.getElementById('authEmail');
+  const passInp = document.getElementById('authPass');
+  const btn = document.getElementById('btnEmailLogin');
+  const email = emailInp.value.trim();
+  const pass = passInp.value;
+
   if (!email || !pass) { toast('Please fill both email and password', 'err'); return; }
+
+  if (!window.FB || !window.FB.auth) {
+    toast('⚠️ Connecting to Firebase... please try in a moment.', 'err');
+    return;
+  }
+
+  const originalText = btn ? btn.innerHTML : '🔑 Sign In';
+  if (btn) { btn.innerHTML = 'Signing in...'; btn.disabled = true; }
+
   try {
-    await window.FB.signInWithEmailAndPassword(window.FB.auth, email, pass);
+    const cred = await window.FB.signInWithEmailAndPassword(window.FB.auth, email, pass);
     closeAuthModal();
-    toast('✅ Welcome back!', 'ok');
+    toast('✅ Welcome back, ' + (cred.user.displayName || email.split('@')[0]) + '!', 'ok');
   } catch(e) {
-    console.error('Email login error:', e);
+    console.error('[CampusBus Auth Error]:', e);
     toast(parseAuthError(e), 'err');
+  } finally {
+    if (btn) { btn.innerHTML = originalText; btn.disabled = false; }
   }
 }
 
 async function doRegister() {
-  const email = document.getElementById('regEmail').value.trim();
-  const pass = document.getElementById('regPass').value;
-  if (!email || !pass) { toast('Please fill all fields', 'err'); return; }
+  const emailInp = document.getElementById('regEmail');
+  const passInp = document.getElementById('regPass');
+  const btn = document.getElementById('btnRegister');
+  const email = emailInp.value.trim();
+  const pass = passInp.value;
+
+  if (!email || !pass) { toast('Please fill all registration fields', 'err'); return; }
   if (pass.length < 6) { toast('Password must be at least 6 characters', 'err'); return; }
+
+  if (!window.FB || !window.FB.auth) {
+    toast('⚠️ Connecting to Firebase... please try in a moment.', 'err');
+    return;
+  }
+
+  const originalText = btn ? btn.innerHTML : '🎓 Create Account';
+  if (btn) { btn.innerHTML = 'Creating account...'; btn.disabled = true; }
+
   try {
-    await window.FB.createUserWithEmailAndPassword(window.FB.auth, email, pass);
+    const cred = await window.FB.createUserWithEmailAndPassword(window.FB.auth, email, pass);
     closeAuthModal();
-    toast('🎓 Account created & logged in!', 'ok');
+    toast('🎓 Account created! Welcome, ' + email.split('@')[0] + '!', 'ok');
   } catch(e) {
-    console.error('Registration error:', e);
+    console.error('[CampusBus Registration Error]:', e);
     toast(parseAuthError(e), 'err');
+  } finally {
+    if (btn) { btn.innerHTML = originalText; btn.disabled = false; }
   }
 }
 
 async function doGoogleLogin() {
+  if (!window.FB || !window.FB.auth) {
+    toast('⚠️ Connecting to Firebase... please try in a moment.', 'err');
+    return;
+  }
+
+  const btn = document.getElementById('btnGoogleLogin');
+  const originalText = btn ? btn.innerHTML : 'Continue with Google';
+  if (btn) { btn.innerHTML = 'Opening Google...'; btn.disabled = true; }
+
   try {
     const provider = new window.FB.GoogleAuthProvider();
-    await window.FB.signInWithPopup(window.FB.auth, provider);
+    provider.setCustomParameters({ prompt: 'select_account' });
+    const cred = await window.FB.signInWithPopup(window.FB.auth, provider);
     closeAuthModal();
-    toast('✅ Google login successful!', 'ok');
+    toast('✅ Google login successful! Hello ' + (cred.user.displayName || 'Student'), 'ok');
   } catch(e) {
-    console.error('Google login error:', e);
+    console.error('[CampusBus Google Auth Error]:', e);
     toast(parseAuthError(e), 'err');
+  } finally {
+    if (btn) { btn.innerHTML = originalText; btn.disabled = false; }
   }
 }
 
 async function doLogout() {
-  if (window.FB) await window.FB.signOut(window.FB.auth);
+  if (window.FB && window.FB.auth) await window.FB.signOut(window.FB.auth);
   currentUser = null;
   updateUserAuthUI();
   toast('Signed out', '');
@@ -2926,6 +3006,40 @@ async function requestNotificationPermission() {
   if (res === 'granted') toast('🔔 Bus notifications enabled!', 'ok');
   else toast('Notifications not enabled', '');
 }
+
+/* ── 16. EXPOSE GLOBAL HANDLERS TO WINDOW ─────────────────────── */
+window.goPage = goPage;
+window.doEmailLogin = doEmailLogin;
+window.doRegister = doRegister;
+window.doGoogleLogin = doGoogleLogin;
+window.doLogout = doLogout;
+window.openAuthModal = openAuthModal;
+window.closeAuthModal = closeAuthModal;
+window.toggleAuthForm = toggleAuthForm;
+window.submitNewTiming = submitNewTiming;
+window.submitAlert = submitAlert;
+window.verifyBusTiming = verifyBusTiming;
+window.setCrowdCapacity = setCrowdCapacity;
+window.postCardComment = postCardComment;
+window.toggleFavRoute = toggleFavRoute;
+window.shareBusDetails = shareBusDetails;
+window.openEditModal = openEditModal;
+window.closeEditModal = closeEditModal;
+window.saveBusEdit = saveBusEdit;
+window.forceSyncSeedToServer = forceSyncSeedToServer;
+window.exportDataJSON = exportDataJSON;
+window.clearOldAlertsAdmin = clearOldAlertsAdmin;
+window.triggerPWAInstall = triggerPWAInstall;
+window.requestNotificationPermission = requestNotificationPermission;
+window.swapSearchStops = swapSearchStops;
+window.setQuickSearch = setQuickSearch;
+window.setHomeFilter = setHomeFilter;
+window.setTimingsFilter = setTimingsFilter;
+window.setTimingsView = setTimingsView;
+window.planJourney = planJourney;
+window.renderRouteTimeline = renderRouteTimeline;
+window.toggleTheme = toggleTheme;
+window.toggleCardDetails = toggleCardDetails;
 </script>
 </body>
 </html>
