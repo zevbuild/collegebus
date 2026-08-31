@@ -1451,6 +1451,7 @@ body.dark-mode #toast {
 
       <div class="section-head">
         <div class="section-title">⚡ Live Community Feed</div>
+        <div style="font-size:11px;color:var(--text-muted);font-weight:600">Auto-expires after 7 days</div>
       </div>
       <div class="bus-list" id="communityAlertsList">
         <div class="loader-wrap"><div class="spinner"></div></div>
@@ -1588,7 +1589,7 @@ body.dark-mode #toast {
             </div>
             <div style="background:var(--surface-hover);padding:10px;border-radius:var(--radius-sm);text-align:center">
               <div style="font-size:18px;font-weight:800;color:var(--primary)" id="adminTotalAlerts">-</div>
-              <div style="font-size:11px;color:var(--text-muted)">Alerts</div>
+              <div style="font-size:11px;color:var(--text-muted)">Alerts (≤7d)</div>
             </div>
           </div>
           <button class="btn btn-secondary btn-block" onclick="forceSyncSeedToServer()" style="margin-bottom:8px">
@@ -1597,8 +1598,8 @@ body.dark-mode #toast {
           <button class="btn btn-secondary btn-block" onclick="exportDataJSON()" style="margin-bottom:8px">
             📥 Export Timings JSON
           </button>
-          <button class="btn btn-danger btn-block" onclick="clearOldAlertsAdmin()">
-            🗑️ Clear Old Alerts
+          <button class="btn btn-danger btn-block" onclick="triggerManualCleanAlerts()">
+            🗑️ Clean Messages Older Than 1 Week
           </button>
         </div>
       </div>
@@ -1820,6 +1821,7 @@ const ROUTE_VIZ = {
 
 /* ── 2. APPLICATION STATE ─────────────────────────────────────── */
 const ADMIN_EMAIL = 'zevbuildstudio@gmail.com';
+const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000; // 7 Days Auto Expiration
 let currentUser = null;
 let buses = [...SEED];
 let alerts = [...SEED_ALERTS];
@@ -1897,7 +1899,7 @@ function updateCloudSyncStatus(status, count = 0) {
   }
 }
 
-/* ── 4. AUTO-FETCH & AUTO-SEED ENGINE (SERVER SYNC) ────────────── */
+/* ── 4. AUTO-FETCH, AUTO-SEED & 1-WEEK MESSAGE PURGE ───────────── */
 async function autoFetchAndSyncSeed() {
   if (!window.FB || !window.FB.db) return;
   if (!navigator.onLine) {
@@ -1958,20 +1960,51 @@ async function autoFetchAndSyncSeed() {
       }
     }
 
-    // 3. Listen for Alerts
+    // 3. Listen for Alerts (Auto-filtered strictly to <= 1 week)
     const alertQ = query(collection(window.FB.db, 'alerts'), orderBy('ts', 'desc'));
     onSnapshot(alertQ, snap => {
-      const fbAlerts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      alerts = fbAlerts.length ? fbAlerts : [...SEED_ALERTS];
+      const now = Date.now();
+      const fbAlerts = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(a => (now - (a.ts || 0)) <= ONE_WEEK_MS); // Auto-filter older than 1 week
+      alerts = fbAlerts.length ? fbAlerts : SEED_ALERTS.filter(a => (now - (a.ts || 0)) <= ONE_WEEK_MS);
       renderAlertsFeed();
       checkGlobalAlertBanner();
       updateAdminCounts();
     });
 
+    // 4. Auto-clean expired messages (> 1 week) in background
+    autoCleanExpiredCommunityMessages();
+
     updateCloudSyncStatus('synced', uploadedCount);
   } catch (err) {
     console.warn('[CampusBus] Server sync completed with local fallback:', err);
     updateCloudSyncStatus('local');
+  }
+}
+
+/* ── 4b. AUTO-CLEAN EXPIRED COMMUNITY MESSAGES (> 7 DAYS) ─────── */
+async function autoCleanExpiredCommunityMessages() {
+  if (!window.FB || !window.FB.db || !currentUser) return;
+  if (currentUser.email !== ADMIN_EMAIL) return; // Admin has server delete permissions in Firestore rules
+  try {
+    const { collection, getDocs, query, where, deleteDoc } = window.FB;
+    const cutoff = Date.now() - ONE_WEEK_MS;
+
+    // Clean expired alerts
+    const snapAlerts = await getDocs(query(collection(window.FB.db, 'alerts'), where('ts', '<', cutoff)));
+    const alertDeletes = snapAlerts.docs.map(d => deleteDoc(d.ref));
+
+    // Clean expired comments
+    const snapComments = await getDocs(query(collection(window.FB.db, 'comments'), where('ts', '<', cutoff)));
+    const commentDeletes = snapComments.docs.map(d => deleteDoc(d.ref));
+
+    await Promise.all([...alertDeletes, ...commentDeletes]);
+    if (snapAlerts.size > 0 || snapComments.size > 0) {
+      console.log(`[CampusBus Auto-Clean] Removed ${snapAlerts.size} old alerts and ${snapComments.size} old comments (>1 week old).`);
+    }
+  } catch (e) {
+    console.warn('[CampusBus Auto-Clean]:', e);
   }
 }
 
@@ -2278,12 +2311,16 @@ async function loadBusComments(busId) {
     const { collection, query, where, getDocs, orderBy } = window.FB;
     const q = query(collection(window.FB.db, 'comments'), where('busId', '==', busId), orderBy('ts', 'desc'));
     const snap = await getDocs(q);
-    if (snap.empty) {
-      listEl.innerHTML = '<div style="padding:4px 0">No live updates yet. Post the first update above!</div>';
+    const now = Date.now();
+    const validComments = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(c => (now - (c.ts || 0)) <= ONE_WEEK_MS); // Auto-filter older than 1 week
+
+    if (!validComments.length) {
+      listEl.innerHTML = '<div style="padding:4px 0">No active updates yet (messages auto-expire after 7 days).</div>';
       return;
     }
-    listEl.innerHTML = snap.docs.map(d => {
-      const c = d.data();
+    listEl.innerHTML = validComments.map(c => {
       return `<div style="padding:3px 0"><strong>${escapeHtml(c.name||'Student')}:</strong> ${escapeHtml(c.message)} <span style="opacity:0.6;font-size:10.5px">· ${ago(c.ts)}</span></div>`;
     }).join('');
   } catch(e) {
@@ -2519,7 +2556,7 @@ function renderAlertsFeed() {
     container.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">📭</div>
-        <div class="empty-text">No active alerts. All buses running normally!</div>
+        <div class="empty-text">No active alerts (messages auto-expire after 7 days). All buses running normally!</div>
       </div>`;
     return;
   }
@@ -2973,18 +3010,14 @@ function exportDataJSON() {
   toast('📥 JSON Export downloaded!', 'ok');
 }
 
-async function clearOldAlertsAdmin() {
-  if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
-  if (!confirm('Clear alerts older than 7 days?')) return;
-  if (window.FB && window.FB.db) {
-    try {
-      const weekAgo = Date.now() - 7*86400000;
-      const q = window.FB.query(window.FB.collection(window.FB.db, 'alerts'), window.FB.where('ts', '<', weekAgo));
-      const snap = await window.FB.getDocs(q);
-      await Promise.all(snap.docs.map(d => window.FB.deleteDoc(d.ref)));
-      toast(`🗑️ Cleared ${snap.size} old alerts`, 'ok');
-    } catch(e) { toast(e.message, 'err'); }
+async function triggerManualCleanAlerts() {
+  if (!currentUser || currentUser.email !== ADMIN_EMAIL) {
+    toast('🔒 Admin access required', 'err');
+    return;
   }
+  toast('Purging community messages older than 7 days...', '');
+  await autoCleanExpiredCommunityMessages();
+  toast('🧹 Cleaned messages older than 1 week!', 'ok');
 }
 
 /* ── 15. PWA & NOTIFICATIONS ──────────────────────────────────── */
@@ -3028,7 +3061,7 @@ window.closeEditModal = closeEditModal;
 window.saveBusEdit = saveBusEdit;
 window.forceSyncSeedToServer = forceSyncSeedToServer;
 window.exportDataJSON = exportDataJSON;
-window.clearOldAlertsAdmin = clearOldAlertsAdmin;
+window.triggerManualCleanAlerts = triggerManualCleanAlerts;
 window.triggerPWAInstall = triggerPWAInstall;
 window.requestNotificationPermission = requestNotificationPermission;
 window.swapSearchStops = swapSearchStops;
