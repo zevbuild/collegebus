@@ -4,12 +4,73 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#10B981">
-<meta name="description" content="CampusBus – Simple, fast, community-powered bus tracker for ACMSR College and Goa students">
+<title>CollegeBus – ACMSR Transit & Goa Bus Timing Tracker</title>
+
+<!-- Primary Meta Tags -->
+<meta name="title" content="CollegeBus – ACMSR Transit & Goa Bus Timing Tracker">
+<meta name="description" content="CollegeBus: Real-time bus timings, crowd capacity reports, route visualizer, and journey planner for ACMSR College (Borda), Kamat, Varca, Margao, and Mobor students in Goa.">
+<meta name="keywords" content="CollegeBus, ACMSR bus timing, Goa college bus, Margao bus timing, Kamat bus stand, Varca to ACMSR, Borda KTC bus, Goa student transit, collegebus.pages.dev">
+<meta name="author" content="Zevbuild Studio">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://collegebus.pages.dev/">
+
+<!-- Open Graph / Facebook / WhatsApp / LinkedIn -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://collegebus.pages.dev/">
+<meta property="og:site_name" content="CollegeBus">
+<meta property="og:title" content="CollegeBus – ACMSR Transit & Goa Bus Timing Tracker">
+<meta property="og:description" content="Live bus timetables, crowd capacity indicators, route timelines, and multi-hop journey planner for ACMSR College & Goa students.">
+<meta property="og:image" content="https://collegebus.pages.dev/icons/icon-512.png">
+<meta property="og:locale" content="en_IN">
+
+<!-- Twitter Cards -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="https://collegebus.pages.dev/">
+<meta name="twitter:domain" content="collegebus.pages.dev">
+<meta name="twitter:title" content="CollegeBus – ACMSR Transit & Goa Bus Timing Tracker">
+<meta name="twitter:description" content="Live bus timetables, crowd capacity indicators, route timelines, and multi-hop journey planner for ACMSR College & Goa students.">
+<meta name="twitter:image" content="https://collegebus.pages.dev/icons/icon-512.png">
+
+<!-- Apple & Mobile Web App -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="CollegeBus">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+
+<!-- Favicon & Manifest -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚍</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2310B981'/><text y='70' x='50' font-size='60' text-anchor='middle'>🚍</text></svg>">
 <link rel="manifest" href="manifest.json">
-<title>CampusBus – ACMSR Transit Tracker</title>
+
+<!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Schema.org JSON-LD for Google Search Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "CollegeBus",
+  "url": "https://collegebus.pages.dev/",
+  "applicationCategory": "TravelApplication",
+  "operatingSystem": "All",
+  "browserRequirements": "Requires JavaScript. Works in all modern browsers and as a PWA.",
+  "description": "Community-powered student bus transit tracker for ACMSR College and South Goa routes including Kamat, Varca, Margao KTC, and Mobor.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "INR"
+  },
+  "areaServed": {
+    "@type": "State",
+    "name": "Goa",
+    "addressCountry": "IN"
+  }
+}
+</script>
 
 <!-- ============================================================
      FIREBASE SDK v12.18.0 (modular CDN)
@@ -55,7 +116,7 @@
     ready: true
   };
 
-  console.log('[CampusBus] Firebase SDK initialized successfully');
+  console.log('[CollegeBus] Firebase SDK initialized successfully');
   if (typeof window._onFirebaseReady === 'function') {
     window._onFirebaseReady();
   }
@@ -1210,7 +1271,7 @@ body.dark-mode #toast {
     <div class="brand-wrap" onclick="goPage('home')">
       <div class="brand-logo">🚍</div>
       <div class="brand-text">
-        <div class="brand-title">Campus<span>Bus</span></div>
+        <div class="brand-title">College<span>Bus</span></div>
         <div class="brand-sub">ACMSR Transit · Goa</div>
       </div>
     </div>
@@ -1605,7 +1666,7 @@ body.dark-mode #toast {
       </div>
 
       <div style="padding:16px;text-align:center;font-size:11px;color:var(--text-light)">
-        CampusBus · ACMSR College Community Transit<br>
+        CollegeBus · ACMSR College Community Transit<br>
         v5.4 Simplified · collegebus.pages.dev
       </div>
     </div>
@@ -1825,8 +1886,8 @@ const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000; // 7 Days Auto Expiration
 let currentUser = null;
 let buses = [...SEED];
 let alerts = [...SEED_ALERTS];
-let favorites = JSON.parse(localStorage.getItem('campusbus_favs') || '[]');
-let crowdCache = JSON.parse(localStorage.getItem('campusbus_crowd') || '{}');
+let favorites = JSON.parse(localStorage.getItem('collegebus_favs') || localStorage.getItem('campusbus_favs') || '[]');
+let crowdCache = JSON.parse(localStorage.getItem('collegebus_crowd') || localStorage.getItem('campusbus_crowd') || '{}');
 let homeFilterKey = 'all';
 let timingsFilterKey = 'all';
 let currentTimingsView = 'cards';
@@ -1922,7 +1983,7 @@ async function autoFetchAndSyncSeed() {
       renderAllViews();
       updateAdminCounts();
     }, err => {
-      console.warn('[CampusBus] Realtime listener error:', err);
+      console.warn('[CollegeBus] Realtime listener error:', err);
     });
 
     // 2. Query existing server entries to detect missing seed entries
@@ -1966,7 +2027,7 @@ async function autoFetchAndSyncSeed() {
       const now = Date.now();
       const fbAlerts = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
-        .filter(a => (now - (a.ts || 0)) <= ONE_WEEK_MS); // Auto-filter older than 1 week
+        .filter(a => (now - (a.ts || 0)) <= ONE_WEEK_MS);
       alerts = fbAlerts.length ? fbAlerts : SEED_ALERTS.filter(a => (now - (a.ts || 0)) <= ONE_WEEK_MS);
       renderAlertsFeed();
       checkGlobalAlertBanner();
@@ -1978,7 +2039,7 @@ async function autoFetchAndSyncSeed() {
 
     updateCloudSyncStatus('synced', uploadedCount);
   } catch (err) {
-    console.warn('[CampusBus] Server sync completed with local fallback:', err);
+    console.warn('[CollegeBus] Server sync completed with local fallback:', err);
     updateCloudSyncStatus('local');
   }
 }
@@ -1986,7 +2047,7 @@ async function autoFetchAndSyncSeed() {
 /* ── 4b. AUTO-CLEAN EXPIRED COMMUNITY MESSAGES (> 7 DAYS) ─────── */
 async function autoCleanExpiredCommunityMessages() {
   if (!window.FB || !window.FB.db || !currentUser) return;
-  if (currentUser.email !== ADMIN_EMAIL) return; // Admin has server delete permissions in Firestore rules
+  if (currentUser.email !== ADMIN_EMAIL) return;
   try {
     const { collection, getDocs, query, where, deleteDoc } = window.FB;
     const cutoff = Date.now() - ONE_WEEK_MS;
@@ -2001,10 +2062,10 @@ async function autoCleanExpiredCommunityMessages() {
 
     await Promise.all([...alertDeletes, ...commentDeletes]);
     if (snapAlerts.size > 0 || snapComments.size > 0) {
-      console.log(`[CampusBus Auto-Clean] Removed ${snapAlerts.size} old alerts and ${snapComments.size} old comments (>1 week old).`);
+      console.log(`[CollegeBus Auto-Clean] Purged ${snapAlerts.size} alerts and ${snapComments.size} comments older than 7 days.`);
     }
   } catch (e) {
-    console.warn('[CampusBus Auto-Clean]:', e);
+    console.warn('[CollegeBus Auto-Clean]:', e);
   }
 }
 
@@ -2095,7 +2156,7 @@ function updateClock() {
 
 /* ── 6. THEME SWITCHER ────────────────────────────────────────── */
 function initTheme() {
-  const saved = localStorage.getItem('campusbus_theme');
+  const saved = localStorage.getItem('collegebus_theme') || localStorage.getItem('campusbus_theme');
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   if (saved === 'dark' || (!saved && prefersDark)) {
     document.body.classList.add('dark-mode');
@@ -2108,7 +2169,7 @@ function initTheme() {
 function toggleTheme() {
   document.body.classList.toggle('dark-mode');
   const isDark = document.body.classList.contains('dark-mode');
-  localStorage.setItem('campusbus_theme', isDark ? 'dark' : 'light');
+  localStorage.setItem('collegebus_theme', isDark ? 'dark' : 'light');
   document.getElementById('themeToggle').textContent = isDark ? '☀️' : '🌙';
 }
 
@@ -2314,7 +2375,7 @@ async function loadBusComments(busId) {
     const now = Date.now();
     const validComments = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
-      .filter(c => (now - (c.ts || 0)) <= ONE_WEEK_MS); // Auto-filter older than 1 week
+      .filter(c => (now - (c.ts || 0)) <= ONE_WEEK_MS);
 
     if (!validComments.length) {
       listEl.innerHTML = '<div style="padding:4px 0">No active updates yet (messages auto-expire after 7 days).</div>';
@@ -2349,7 +2410,7 @@ async function postCardComment(busId) {
       toast('💬 Update posted!', 'ok');
       return;
     } catch(e) {
-      console.warn('[CampusBus] Comment post error:', e);
+      console.warn('[CollegeBus] Comment post error:', e);
     }
   }
   toast('💬 Update saved locally!', 'ok');
@@ -2706,7 +2767,7 @@ function setCrowdCapacity(busId, level) {
     return;
   }
   crowdCache[busId] = level;
-  localStorage.setItem('campusbus_crowd', JSON.stringify(crowdCache));
+  localStorage.setItem('collegebus_crowd', JSON.stringify(crowdCache));
   
   if (window.FB && window.FB.db && navigator.onLine) {
     try {
@@ -2731,7 +2792,7 @@ function toggleFavRoute(from, to) {
     favorites.push({ from, to });
     toast('⭐ Saved to favorites!', 'ok');
   }
-  localStorage.setItem('campusbus_favs', JSON.stringify(favorites));
+  localStorage.setItem('collegebus_favs', JSON.stringify(favorites));
   renderAllViews();
 }
 
@@ -2753,9 +2814,9 @@ function renderSavedFavs() {
 }
 
 function shareBusDetails(from, to, time, busNo) {
-  const msg = `🚌 CampusBus Route: Bus #${busNo} from ${from} to ${to} at ${time} IST.\nCheck live on https://collegebus.pages.dev`;
+  const msg = `🚌 CollegeBus Route: Bus #${busNo} from ${from} to ${to} at ${time} IST.\nCheck live on https://collegebus.pages.dev`;
   if (navigator.share) {
-    navigator.share({ title: 'CampusBus Timing', text: msg });
+    navigator.share({ title: 'CollegeBus Timing', text: msg });
   } else {
     navigator.clipboard?.writeText(msg);
     toast('📋 Route copied to clipboard!', 'ok');
@@ -2813,7 +2874,7 @@ function setupAuthListener() {
     return;
   }
   window.FB.onAuthStateChanged(window.FB.auth, user => {
-    console.log('[CampusBus Auth State]:', user ? `Logged in as ${user.email}` : 'Logged out (Guest)');
+    console.log('[CollegeBus Auth State]:', user ? `Logged in as ${user.email}` : 'Logged out (Guest)');
     currentUser = user;
     updateUserAuthUI();
     if (user) {
@@ -2925,7 +2986,7 @@ async function doEmailLogin() {
     closeAuthModal();
     toast('✅ Welcome back, ' + (cred.user.displayName || email.split('@')[0]) + '!', 'ok');
   } catch(e) {
-    console.error('[CampusBus Auth Error]:', e);
+    console.error('[CollegeBus Auth Error]:', e);
     toast(parseAuthError(e), 'err');
   } finally {
     if (btn) { btn.innerHTML = originalText; btn.disabled = false; }
@@ -2955,7 +3016,7 @@ async function doRegister() {
     closeAuthModal();
     toast('🎓 Account created! Welcome, ' + email.split('@')[0] + '!', 'ok');
   } catch(e) {
-    console.error('[CampusBus Registration Error]:', e);
+    console.error('[CollegeBus Registration Error]:', e);
     toast(parseAuthError(e), 'err');
   } finally {
     if (btn) { btn.innerHTML = originalText; btn.disabled = false; }
@@ -2979,7 +3040,7 @@ async function doGoogleLogin() {
     closeAuthModal();
     toast('✅ Google login successful! Hello ' + (cred.user.displayName || 'Student'), 'ok');
   } catch(e) {
-    console.error('[CampusBus Google Auth Error]:', e);
+    console.error('[CollegeBus Google Auth Error]:', e);
     toast(parseAuthError(e), 'err');
   } finally {
     if (btn) { btn.innerHTML = originalText; btn.disabled = false; }
@@ -3005,7 +3066,7 @@ function exportDataJSON() {
   const blob = new Blob([JSON.stringify(buses, null, 2)], { type:'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'campusbus-data.json';
+  a.download = 'collegebus-data.json';
   a.click();
   toast('📥 JSON Export downloaded!', 'ok');
 }

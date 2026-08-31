@@ -1,9 +1,9 @@
 /* ============================================================
-   CampusBus — Service Worker v5.4
+   CollegeBus — Service Worker v5.5
    Handles offline caching + push notifications
 ============================================================ */
 
-const CACHE_NAME = 'campusbus-v5.4';
+const CACHE_NAME = 'collegebus-v5.5';
 const CACHE_FILES = [
   './',
   './index.html',
