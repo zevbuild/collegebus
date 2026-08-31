@@ -1931,25 +1931,27 @@ async function autoFetchAndSyncSeed() {
     });
 
     let uploadedCount = 0;
-    // Auto-seed missing entries to server
-    for (const item of SEED) {
-      const key = `${item.from.trim()}→${item.to.trim()}@${item.time.trim()}`;
-      if (!existingKeys.has(key)) {
-        const docRef = doc(window.FB.db, 'bus_timings', 'seed_' + item.id);
-        await setDoc(docRef, {
-          busNo: item.busNo,
-          type: item.type || 'general',
-          from: item.from,
-          to: item.to,
-          time: item.time,
-          notes: item.notes || '',
-          addedBy: item.addedBy || 'raju',
-          verified: item.verified || [],
-          isSeed: true,
-          ts: Date.now()
-        }, { merge: true });
-        existingKeys.add(key);
-        uploadedCount++;
+    // Auto-seed missing entries to server when authenticated
+    if (currentUser) {
+      for (const item of SEED) {
+        const key = `${item.from.trim()}→${item.to.trim()}@${item.time.trim()}`;
+        if (!existingKeys.has(key)) {
+          const docRef = doc(window.FB.db, 'bus_timings', 'seed_' + item.id);
+          await setDoc(docRef, {
+            busNo: item.busNo,
+            type: item.type || 'general',
+            from: item.from,
+            to: item.to,
+            time: item.time,
+            notes: item.notes || '',
+            addedBy: item.addedBy || 'raju',
+            verified: item.verified || [],
+            isSeed: true,
+            ts: Date.now()
+          }, { merge: true });
+          existingKeys.add(key);
+          uploadedCount++;
+        }
       }
     }
 
@@ -2708,6 +2710,9 @@ function setupAuthListener() {
   window.FB.onAuthStateChanged(window.FB.auth, user => {
     currentUser = user;
     updateUserAuthUI();
+    if (user) {
+      autoFetchAndSyncSeed();
+    }
   });
 }
 
