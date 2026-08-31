@@ -1606,7 +1606,7 @@ body.dark-mode #toast {
 
       <div style="padding:16px;text-align:center;font-size:11px;color:var(--text-light)">
         CampusBus · ACMSR College Community Transit<br>
-        v5.4 Simplified · campusbus.pages.dev
+        v5.4 Simplified · collegebus.pages.dev
       </div>
     </div>
 
@@ -2266,10 +2266,15 @@ async function loadBusComments(busId) {
 }
 
 async function postCardComment(busId) {
+  if (!currentUser) {
+    toast('🔒 Please sign in to post live updates', 'err');
+    openAuthModal();
+    return;
+  }
   const inp = document.getElementById('inputComment_' + busId);
   const msg = inp.value.trim();
   if (!msg) return;
-  const name = currentUser ? (currentUser.displayName || currentUser.email.split('@')[0]) : 'Student';
+  const name = currentUser.displayName || currentUser.email.split('@')[0];
   
   if (window.FB && window.FB.db) {
     try {
@@ -2526,6 +2531,11 @@ function renderLeaderboard() {
 
 /* ── 12. DATA OPERATIONS (ADD, VERIFY, EDIT, FAV) ─────────────── */
 async function submitNewTiming() {
+  if (!currentUser) {
+    toast('🔒 Login required to save new bus timings', 'err');
+    openAuthModal();
+    return;
+  }
   const busNo = document.getElementById('addBusNo').value.trim();
   const type  = document.getElementById('addBusType').value;
   const from  = document.getElementById('addFrom').value.trim();
@@ -2542,7 +2552,7 @@ async function submitNewTiming() {
     return;
   }
 
-  const addedBy = currentUser ? currentUser.email : 'student';
+  const addedBy = currentUser.email;
   const newBus = { busNo, type, from, to, time, notes, addedBy, verified: [], ts: Date.now() };
 
   if (window.FB && window.FB.db && navigator.onLine) {
@@ -2566,11 +2576,16 @@ async function submitNewTiming() {
 }
 
 async function submitAlert() {
+  if (!currentUser) {
+    toast('🔒 Login required to broadcast route alerts', 'err');
+    openAuthModal();
+    return;
+  }
   const type = document.getElementById('postAlertType').value;
   const message = document.getElementById('postAlertMsg').value.trim();
   if (!message) { toast('Please enter an alert message', 'err'); return; }
 
-  const addedBy = currentUser ? currentUser.email : 'student';
+  const addedBy = currentUser.email;
   const alertObj = { type, message, addedBy, ts: Date.now() };
 
   if (window.FB && window.FB.db && navigator.onLine) {
@@ -2592,9 +2607,14 @@ async function submitAlert() {
 }
 
 async function verifyBusTiming(busId) {
+  if (!currentUser) {
+    toast('🔒 Please sign in to verify bus timings', 'err');
+    openAuthModal();
+    return;
+  }
   const bus = buses.find(b => b.id === busId);
   if (!bus) return;
-  const userIdentifier = currentUser ? currentUser.email : 'local_user';
+  const userIdentifier = currentUser.email;
 
   if (!bus.verified) bus.verified = [];
   if (bus.verified.includes(userIdentifier)) {
@@ -2615,8 +2635,24 @@ async function verifyBusTiming(busId) {
 }
 
 function setCrowdCapacity(busId, level) {
+  if (!currentUser) {
+    toast('🔒 Please sign in to report seat capacity', 'err');
+    openAuthModal();
+    return;
+  }
   crowdCache[busId] = level;
   localStorage.setItem('campusbus_crowd', JSON.stringify(crowdCache));
+  
+  if (window.FB && window.FB.db && navigator.onLine) {
+    try {
+      const today = new Date().toISOString().slice(0,10);
+      const docRef = window.FB.doc(window.FB.db, 'crowd_reports', busId + '_' + today);
+      window.FB.setDoc(docRef, {
+        busId, date: today, [`votes.${level}`]: window.FB.increment(1), voters: { [currentUser.uid]: level }
+      }, { merge: true }).catch(() => {});
+    } catch(e) {}
+  }
+
   toast(`Reported: ${level.toUpperCase()}`, 'ok');
   renderAllViews();
 }
@@ -2652,7 +2688,7 @@ function renderSavedFavs() {
 }
 
 function shareBusDetails(from, to, time, busNo) {
-  const msg = `🚌 CampusBus Route: Bus #${busNo} from ${from} to ${to} at ${time} IST.\nCheck live on https://campusbus.pages.dev`;
+  const msg = `🚌 CampusBus Route: Bus #${busNo} from ${from} to ${to} at ${time} IST.\nCheck live on https://collegebus.pages.dev`;
   if (navigator.share) {
     navigator.share({ title: 'CampusBus Timing', text: msg });
   } else {
