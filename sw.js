@@ -1,18 +1,21 @@
 /* ============================================================
-   CollegeBus — Service Worker v5.6
+   CollegeBus — Service Worker v6.0.0 (Final Community Release)
    Network-First Navigation + Stale-While-Revalidate Static Cache
    + Full Offline PWA Support & Push Notifications
 ============================================================ */
 
-const CACHE_NAME = 'collegebus-v5.6';
+const CACHE_NAME = 'collegebus-v6.0.0';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
   'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap',
   'https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js',
   'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js',
-  'https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js'
+  'https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js',
+  'https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js'
 ];
 
 // Bypass list for live Firestore & Firebase Auth API requests

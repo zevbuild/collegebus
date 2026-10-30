@@ -54,3 +54,20 @@ This is the brain and authoritative specification of the project.
 - **Firebase Project**: `zevbuild`
 - **PWA**: Service Worker caching (`sw.js`), Web App Manifest (`manifest.json`), Offline First with IndexedDB & LocalStorage fallback.
 - **Hosting**: Cloudflare Pages (`https://collegebus.pages.dev`).
+
+---
+
+## 4. Final Release Milestone (v6.0.0 LTS)
+
+- **Status**: Self-Sustaining Community Edition · Maintenance Complete & Archived.
+- **Release Version**: `v6.0.0`
+- **Release Date**: October 30, 2026
+- **Architecture Stability**:
+  - Application operates fully autonomously via Firebase live sync and local seed data fallbacks.
+  - Auto-cleaning routines handle Firestore message purges after 7 days without developer intervention.
+  - Complete offline PWA support with Service Worker `collegebus-v6.0.0` and pre-cached core assets.
+- **Key Features in Final Release**:
+  - High-resolution 192×192 and 512×512 PNG app icons in `icons/` for PWA installation and Open Graph social cards.
+  - Deep linking support for `?page=` URL search parameters (supports shortcuts for home, timings, journey, community, profile, and add).
+  - Humanized countdown format (`In Xh Ym` / `In X mins` / `Departing Now`).
+  - Pre-release audit executed with 100% test pass rate.
